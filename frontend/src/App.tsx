@@ -1,14 +1,16 @@
 // /frontend/src/App.tsx
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import LoginPage from './pages/LoginPage';
-import theme from './theme'; // On importe notre thème personnalisé
+import theme from './theme';
+import { AuthProvider } from './contexts/AuthContext.tsx';
+import AppRouter from './routeurs/AppRouter.tsx';
 
 function App() {
     return (
         <ThemeProvider theme={theme}>
-            {/* CssBaseline réinitialise les styles du navigateur pour être cohérent */}
             <CssBaseline />
-            <LoginPage />
+            <AuthProvider> {/* Notre gardien enveloppe tout */}
+                <AppRouter />  {/* Notre système de routes gère ce qui est affiché */}
+            </AuthProvider>
         </ThemeProvider>
     );
 }

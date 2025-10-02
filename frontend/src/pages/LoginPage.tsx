@@ -1,36 +1,43 @@
 // /frontend/src/pages/LoginPage.tsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import pour la redirection
 import { Container, Box, Typography, TextField, Button, InputAdornment, CircularProgress, Alert } from '@mui/material';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
-// On importe notre nouveau service
-import { authService } from '../services/authService';
+// On importe notre service et notre contexte (avec les extensions de fichier)
+import { authService } from '../services/authService.ts';
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    // Nouveaux états pour gérer le chargement et les erreurs
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const navigate = useNavigate(); // Hook de React Router pour changer de page
+    const { login } = useAuth();    // On récupère la fonction 'login' de notre AuthContext
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        setError(''); // On réinitialise l'erreur
-        setLoading(true); // On active le chargement
+        setError('');
+        setLoading(true);
 
         try {
+            // On appelle le service pour se connecter
             const data = await authService.login(email, password);
-            console.log('Connexion réussie ! Token:', data.token);
-            // Ici, on redirigera l'utilisateur vers son tableau de bord
-            alert('Connexion réussie !');
+
+            // Si la connexion réussit, on met à jour l'état global de l'application
+            login(data.token);
+
+            // Et on redirige l'utilisateur vers son tableau de bord
+            navigate('/dashboard');
+
         } catch (err: any) {
-            // Si le serveur renvoie une erreur (ex: 401 Unauthorized), Axios la capture
             const errorMessage = err.response?.data?.message || 'Une erreur est survenue.';
             setError(errorMessage);
-            console.error('Erreur de connexion:', errorMessage);
         } finally {
-            setLoading(false); // On désactive le chargement dans tous les cas
+            setLoading(false);
         }
     };
 
@@ -46,7 +53,6 @@ const LoginPage = () => {
                     </Typography>
                 </Box>
                 <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%', p: 3, borderRadius: '24px', background: '#eafaf1', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-                    {/* Affiche l'alerte d'erreur si elle existe */}
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
                     <TextField
@@ -68,4 +74,5 @@ const LoginPage = () => {
         </Container>
     );
 };
+
 export default LoginPage;
