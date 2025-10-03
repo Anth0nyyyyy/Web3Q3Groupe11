@@ -38,7 +38,15 @@ userSchema.pre('save', async function(next) {
     next();
 });
 
+export interface IUser extends Document {
+    email: string;
+    password?: string; // Le '?' car il est parfois non sélectionné
+    githubToken?: string; // Le '?' car il est optionnel et non sélectionné
+}
+
 // 4. Création et Exportation du Modèle
 const User = model('User', userSchema);
+
+
 
 export default User;
