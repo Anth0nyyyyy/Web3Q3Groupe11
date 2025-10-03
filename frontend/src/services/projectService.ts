@@ -1,12 +1,14 @@
 // /frontend/src/services/projectService.ts
 import axios from 'axios';
 
+// CORRECTION : On importe le type 'TeamMember' dont on a besoin
+import type { TeamMember } from '../types/index.ts';
+
 // --- INTERFACES & CONFIGURATION ---
 
 const API_PROJECTS_URL = 'http://localhost:4000/api/projects';
 const API_GROUPS_URL = 'http://localhost:4000/api/groups';
 
-// Interface pour les données de création d'un projet
 interface ProjectData {
     name: string;
     githubOrg: string;
@@ -15,7 +17,6 @@ interface ProjectData {
     repoPattern?: string;
 }
 
-// Fonction utilitaire pour récupérer le token
 const getToken = () => localStorage.getItem('user_token');
 
 // --- FONCTIONS DU SERVICE ---
@@ -24,9 +25,7 @@ const getToken = () => localStorage.getItem('user_token');
  * Récupère tous les projets appartenant au professeur connecté.
  */
 const getMyProjects = async () => {
-    const config = {
-        headers: { Authorization: `Bearer ${getToken()}` }
-    };
+    const config = { headers: { Authorization: `Bearer ${getToken()}` } };
     const response = await axios.get(API_PROJECTS_URL, config);
     return response.data;
 };
@@ -36,23 +35,20 @@ const getMyProjects = async () => {
  * @param projectData - Les données du projet à créer.
  */
 const createProject = async (projectData: ProjectData) => {
-    const config = {
-        headers: { Authorization: `Bearer ${getToken()}` }
-    };
+    const config = { headers: { Authorization: `Bearer ${getToken()}` } };
     const response = await axios.post(API_PROJECTS_URL, projectData, config);
     return response.data;
 };
 
 /**
  * Crée un groupe, une équipe et un dépôt GitHub pour un projet donné.
- * C'est la fonction appelée par la page étudiante.
  * @param projectId - L'ID du projet.
  * @param accessKey - La clé secrète du projet.
- * @param githubUsernames - La liste des pseudos GitHub des étudiants.
+ * @param members - La liste des membres de l'équipe. // CORRECTION : Paramètre mis à jour
  */
-const createGroupForProject = async (projectId: string, accessKey: string, githubUsernames: string[]) => {
+const createGroupForProject = async (projectId: string, accessKey: string, members: TeamMember[]) => {
     const url = `${API_GROUPS_URL}/create/${projectId}/${accessKey}`;
-    const response = await axios.post(url, { githubUsernames });
+    const response = await axios.post(url, { members }); // On envoie bien un objet { members: [...] }
     return response.data;
 };
 
@@ -61,6 +57,5 @@ const createGroupForProject = async (projectId: string, accessKey: string, githu
 export const projectService = {
     getMyProjects,
     createProject,
-    // CORRECTION : On ajoute la fonction manquante à l'objet exporté
     createGroupForProject,
 };
