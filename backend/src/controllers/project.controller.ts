@@ -1,42 +1,59 @@
+// /backend/src/controllers/project.controller.ts
 import type { Request, Response } from 'express';
 import Project from '../models/Project.model.js';
 
-// Créer un nouveau projet
-// /backend/src/controllers/project.controller.ts
+/**
+ * @desc    Créer un nouveau projet pour le professeur connecté
+ * @route   POST /api/projects
+ */
 export const createProject = async (req: Request, res: Response) => {
-    // --- LIGNE ESPION ---
-    console.log('Requête reçue pour créer un projet.');
-    console.log('Corps de la requête (body):', req.body);
-    console.log('Utilisateur authentifié (req.user):', req.user);
-
     try {
+        // La validation des données du body (name, githubOrg, etc.) a été faite en amont.
         const { name, githubOrg, minMembers, maxMembers, repoPattern } = req.body;
+
+        // On récupère l'ID du professeur depuis le middleware 'protect'
         const owner = req.user?.id;
 
-        // On vérifie que l'owner a bien été trouvé
+        // Le middleware 'protect' garantit que req.user.id existe, mais cette vérification est une sécurité supplémentaire.
         if (!owner) {
-            return res.status(401).json({ message: "Impossible d'identifier l'utilisateur propriétaire." });
+            return res.status(401).json({ message: "Utilisateur non authentifié." });
         }
 
         const newProject = new Project({
-            name, githubOrg, minMembers, maxMembers, repoPattern, owner
+            name,
+            githubOrg,
+            minMembers,
+            maxMembers,
+            repoPattern, // Sera la valeur par défaut du modèle si non fourni
+            owner
         });
 
         await newProject.save();
+
+        // On renvoie le projet nouvellement créé
         res.status(201).json(newProject);
-    } catch (error: any) { // On ajoute ': any' pour pouvoir logger l'erreur
-        // --- LIGNE ESPION D'ERREUR ---
-        console.error('ERREUR lors de la création du projet:', error.message);
+
+    } catch (error) {
+        console.error("Erreur lors de la création du projet:", error);
         res.status(500).json({ message: 'Erreur serveur lors de la création du projet.' });
     }
 };
 
-// Obtenir tous les projets du professeur connecté
+/**
+ * @desc    Obtenir tous les projets appartenant au professeur connecté
+ * @route   GET /api/projects
+ */
 export const getMyProjects = async (req: Request, res: Response) => {
     try {
-        const projects = await Project.find({ owner: req.user?.id }).sort({ createdAt: -1 });
+        // On récupère l'ID du professeur depuis le middleware 'protect'
+        const ownerId = req.user?.id;
+
+        const projects = await Project.find({ owner: ownerId }).sort({ createdAt: -1 });
+
         res.status(200).json(projects);
+
     } catch (error) {
-        res.status(500).json({ message: 'Erreur serveur.' });
+        console.error("Erreur lors de la récupération des projets:", error);
+        res.status(500).json({ message: 'Erreur serveur lors de la récupération des projets.' });
     }
 };

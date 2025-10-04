@@ -10,33 +10,25 @@ export const createGroup = async (req: Request, res: Response) => {
         const { projectId, accessKey } = req.params;
         const { members } = req.body;
 
-        // --- CORRECTION : On vérifie que les paramètres d'URL existent ---
+        // --- CORRECTION : La vérification des 'params' qui rassure TypeScript ---
         if (!projectId || !accessKey) {
             return res.status(400).json({ message: 'ID de projet ou clé d\'accès manquante dans l\'URL.' });
         }
 
-        if (!members || !Array.isArray(members) || members.length === 0) {
-            return res.status(400).json({ message: 'La liste des membres est requise.' });
-        }
-
-        // 1. Valider la clé d'accès
+        // 1. Valider la logique métier : la clé d'accès correspond-elle bien au projet ?
         const project: IProject | null = await Project.findById(projectId);
         if (!project || project.accessKey !== accessKey) {
             return res.status(403).json({ message: 'Clé d\'accès invalide ou projet non trouvé.' });
         }
 
         // 2. Extraire les pseudos GitHub
-        const githubUsernames = members.map((member: any) => member.githubUsername);
+        const githubUsernames = members.map((member: { githubUsername: string }) => member.githubUsername);
 
         // 3. Appeler le service GitHub
-        // À ce stade, TypeScript sait que 'projectId' est une 'string'
-        const repoUrl = await createGithubTeamAndRepo(projectId, githubUsernames);
+        // À ce stade, 'projectId' est bien une 'string'
+        const { repoUrl, groupName } = await createGithubTeamAndRepo(projectId, githubUsernames);
 
-        // 4. Générer un nom de groupe unique
-        const groupCount = await Group.countDocuments({ project: projectId });
-        const groupName = project.repoPattern.replace('##', String(groupCount + 1).padStart(2, '0'));
-
-        // 5. Sauvegarder le groupe dans notre base de données
+        // 4. Sauvegarder le groupe dans notre base de données
         const newGroup = new Group({
             name: groupName,
             project: projectId,
@@ -45,10 +37,12 @@ export const createGroup = async (req: Request, res: Response) => {
         });
         await newGroup.save();
 
+        // 5. Envoyer la réponse de succès
         res.status(201).json({ message: `Groupe "${groupName}" et dépôt créés avec succès !`, repoUrl });
 
     } catch (error: any) {
-        console.error("ERREUR lors de la création du groupe:", error);
-        res.status(500).json({ message: error.message || 'Erreur serveur.' });
+        console.error("ERREUR DANS LE CONTRÔLEUR DE GROUPE:", error.message);
+        const statusCode = error.message.includes('pseudo GitHub') ? 400 : 500;
+        res.status(statusCode).json({ message: error.message || 'Erreur serveur.' });
     }
 };

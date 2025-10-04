@@ -1,52 +1,53 @@
 // /backend/src/models/User.model.ts
-
-import { Schema, model } from 'mongoose';
+import { Schema, model, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
-
-// 1. Définition du Schéma
-const userSchema = new Schema({
-    email: {
-        type: String,
-        required: [true, 'L\'email est obligatoire'],
-        unique: true, // L'email doit être unique dans la collection
-        lowercase: true, // Convertit l'email en minuscules avant de le sauvegarder
-        trim: true, // Supprime les espaces au début et à la fin
-    },
-    password: {
-        type: String,
-        required: [true, 'Le mot de passe est obligatoire'],
-        minlength: [6, 'Le mot de passe doit contenir au moins 6 caractères'],
-        select: false, // TRÈS IMPORTANT: le mot de passe ne sera jamais renvoyé par les requêtes
-    },
-}, {
-    // 2. Options du Schéma
-    timestamps: true, // Ajoute automatiquement les champs createdAt et updatedAt
-});
-
-// 3. Middleware "pre-save" pour hacher le mot de passe
-// Cette fonction sera exécutée automatiquement AVANT qu'un utilisateur soit sauvegardé
-userSchema.pre('save', async function(next) {
-    // On ne hache le mot de passe que s'il a été modifié (ou s'il est nouveau)
-    if (!this.isModified('password')) {
-        return next();
-    }
-
-    // Génère un "sel" pour renforcer le hachage
-    const salt = await bcrypt.genSalt(10);
-    // Hache le mot de passe avec le sel
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-});
 
 export interface IUser extends Document {
     email: string;
-    password?: string; // Le '?' car il est parfois non sélectionné
-    githubToken?: string; // Le '?' car il est optionnel et non sélectionné
+    password?: string;
+    githubToken?: string;
 }
 
-// 4. Création et Exportation du Modèle
-const User = model('User', userSchema);
+const userSchema = new Schema<IUser>({
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
+    },
+    password: {
+        type: String,
+        required: true,
+        minlength: 6,
+        select: false,
+    },
+    githubToken: { type: String, select: false },
+}, {
+    timestamps: true,
+});
 
+userSchema.pre('save', async function(next) {
+    // 'this' fait référence au document User en cours de sauvegarde
+    const user = this as IUser;
 
+    if (!user.isModified('password') || !user.password) {
+        return next();
+    }
+
+    try {
+        const salt = await bcrypt.genSalt(10);
+        // À ce stade, TypeScript est sûr que user.password est une string
+        user.password = await bcrypt.hash(user.password, salt);
+        next();
+    } catch (error) {
+        // Si le hachage échoue, on passe l'erreur à Mongoose
+        if (error instanceof Error) {
+            next(error);
+        }
+    }
+});
+
+const User = model<IUser>('User', userSchema);
 
 export default User;

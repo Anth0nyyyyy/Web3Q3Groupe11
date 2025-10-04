@@ -23,7 +23,7 @@ const projectSchema = new Schema<IProject>({
     githubOrg: { type: String, required: true, trim: true },
     minMembers: { type: Number, required: true, min: 1 },
     maxMembers: { type: Number, required: true, min: 1 },
-    repoPattern: { type: String, default: 'projet-##' },
+    repoPattern: { type: String, default: 'Web3-Groupe-##' },
     accessKey: { type: String, unique: true },
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });

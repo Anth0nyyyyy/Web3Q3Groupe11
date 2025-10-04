@@ -1,8 +1,8 @@
 // /backend/src/services/github.service.ts
 import { Octokit } from 'octokit';
-// On importe les modèles (les valeurs) et les types (avec 'type') séparément
 import User from '../models/User.model.js';
 import Project from '../models/Project.model.js';
+import Group from '../models/Group.model.js';
 import type { IUser } from '../models/User.model.js';
 import type { IProject } from '../models/Project.model.js';
 
@@ -13,33 +13,59 @@ export const createGithubTeamAndRepo = async (projectId: string, studentUsername
         throw new Error('Projet non trouvé.');
     }
 
-    // 2. Récupérer le token GitHub du professeur propriétaire
-    // On spécifie que le type peut inclure notre champ optionnel githubToken
+    // 2. Récupérer le token GitHub (depuis la BDD ou le .env de secours)
+    let githubToken: string | undefined;
     const ownerWithToken: (IUser & { githubToken?: string }) | null = await User.findById(project.owner).select('+githubToken');
-    if (!ownerWithToken || !ownerWithToken.githubToken) {
-        throw new Error('Le token GitHub du professeur est manquant ou invalide.');
+
+    if (ownerWithToken && ownerWithToken.githubToken) {
+        githubToken = ownerWithToken.githubToken;
+        console.log("INFO: Utilisation du token GitHub de la base de données.");
+    } else if (process.env.NODE_ENV !== 'production' && process.env.DEV_GITHUB_TOKEN) {
+        githubToken = process.env.DEV_GITHUB_TOKEN;
+        console.log("AVERTISSEMENT: Utilisation du token GitHub de secours (DEV_GITHUB_TOKEN).");
     }
 
-    const octokit = new Octokit({ auth: ownerWithToken.githubToken });
+    if (!githubToken) {
+        throw new Error('Aucun token GitHub valide n\'a pu être trouvé. Le propriétaire du projet doit le configurer.');
+    }
 
-    // 3. Générer le nom de l'équipe et du dépôt
-    const teamAndRepoName = `${project.name.replace(/\s+/g, '-')}-equipe-${Date.now()}`;
+    const octokit = new Octokit({ auth: githubToken });
 
-    // 4. Créer l'équipe dans l'organisation
+    // 3. Validation des pseudos GitHub avant toute autre action
+    console.log("Vérification des pseudos GitHub...");
+    for (const username of studentUsernames) {
+        try {
+            await octokit.rest.users.getByUsername({ username });
+            console.log(` -> Pseudo "${username}" valide.`);
+        } catch (error) {
+            console.error(` -> ERREUR: Le pseudo "${username}" n'existe pas sur GitHub.`);
+            throw new Error(`Le pseudo GitHub "${username}" est invalide ou n'a pas pu être trouvé.`);
+        }
+    }
+
+    // 4. Logique de nommage séquentielle
+    const groupCount = await Group.countDocuments({ project: projectId });
+    const newGroupNumber = String(groupCount + 1).padStart(2, '0');
+    const teamAndRepoName = project.repoPattern.replace('##', newGroupNumber);
+    console.log(`Génération du nom pour le nouveau groupe : ${teamAndRepoName}`);
+
+    // 5. Création de l'équipe sur GitHub
     const { data: team } = await octokit.rest.teams.create({
         org: project.githubOrg,
         name: teamAndRepoName,
         privacy: 'closed',
     });
+    console.log(` -> Équipe "${teamAndRepoName}" créée.`);
 
-    // 5. Créer le dépôt privé
+    // 6. Création du dépôt privé sur GitHub
     const { data: repo } = await octokit.rest.repos.createInOrg({
         org: project.githubOrg,
         name: teamAndRepoName,
         private: true,
     });
+    console.log(` -> Dépôt "${teamAndRepoName}" créé.`);
 
-    // 6. Lier l'équipe au dépôt
+    // 7. Liaison de l'équipe au dépôt
     await octokit.rest.teams.addOrUpdateRepoPermissionsInOrg({
         org: project.githubOrg,
         team_slug: team.slug,
@@ -47,8 +73,9 @@ export const createGithubTeamAndRepo = async (projectId: string, studentUsername
         repo: repo.name,
         permission: 'push',
     });
+    console.log(` -> Permissions accordées.`);
 
-    // 7. Ajouter chaque étudiant à l'équipe
+    // 8. Ajout des étudiants à l'équipe
     for (const username of studentUsernames) {
         await octokit.rest.teams.addOrUpdateMembershipForUserInOrg({
             org: project.githubOrg,
@@ -56,8 +83,9 @@ export const createGithubTeamAndRepo = async (projectId: string, studentUsername
             username,
             role: 'member',
         });
+        console.log(` -> Membre '${username}' ajouté à l'équipe.`);
     }
 
-    // 8. Retourner l'URL du dépôt créé
-    return repo.html_url;
+    // 9. Retourner les informations nécessaires au contrôleur
+    return { repoUrl: repo.html_url, groupName: teamAndRepoName };
 };

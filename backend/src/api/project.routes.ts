@@ -2,6 +2,8 @@
 import { Router } from 'express';
 import { createProject, getMyProjects } from '../controllers/project.controller.js';
 import { protect } from '../middlewares/auth.middlewares.js'; // On importe notre gardien
+import { validate } from '../middlewares/validate.middleware.js';
+import { createProjectSchema } from '../schemas/project.schema.js';
 
 const router = Router();
 
@@ -10,7 +12,7 @@ const router = Router();
 router.use(protect);
 
 router.route('/')
-    .post(createProject)
+    .post(validate(createProjectSchema), createProject)
     .get(getMyProjects);
 
 export default router;
