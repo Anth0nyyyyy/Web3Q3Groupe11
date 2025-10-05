@@ -1,7 +1,7 @@
 // /backend/src/api/project.routes.ts
 import { Router } from 'express';
-import { createProject, getMyProjects } from '../controllers/project.controller.js';
-import { protect } from '../middlewares/auth.middlewares.js'; // On importe notre gardien
+import { createProject, getMyProjects, getProjectById } from '../controllers/project.controller.js';
+import { protect } from '../middlewares/auth.middleware.js'; // On importe notre gardien
 import { validate } from '../middlewares/validate.middleware.js';
 import { createProjectSchema } from '../schemas/project.schema.js';
 
@@ -14,5 +14,8 @@ router.use(protect);
 router.route('/')
     .post(validate(createProjectSchema), createProject)
     .get(getMyProjects);
+
+router.route('/:id')
+    .get(getProjectById);
 
 export default router;

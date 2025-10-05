@@ -5,6 +5,7 @@ import FolderIcon from '@mui/icons-material/Folder';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { Link as RouterLink } from 'react-router-dom';
 
 const BottomNav = () => {
     const [value, setValue] = useState(0);
@@ -32,6 +33,7 @@ const BottomNav = () => {
                 <BottomNavigationAction
                     label="Mon Profil"
                     icon={<PersonIcon />}
+                    component={RouterLink} to="/profile" // <-- LIEN VERS LE PROFIL
                     sx={{ '&.Mui-selected': { color: 'primary.light' } }}
                 />
                 <BottomNavigationAction

@@ -1,6 +1,7 @@
 // /backend/src/controllers/project.controller.ts
 import type { Request, Response } from 'express';
 import Project from '../models/Project.model.js';
+import Group from '../models/Group.model.js'; // Assurez-vous que l'import est bien là
 
 /**
  * @desc    Créer un nouveau projet pour le professeur connecté
@@ -8,13 +9,9 @@ import Project from '../models/Project.model.js';
  */
 export const createProject = async (req: Request, res: Response) => {
     try {
-        // La validation des données du body (name, githubOrg, etc.) a été faite en amont.
         const { name, githubOrg, minMembers, maxMembers, repoPattern } = req.body;
-
-        // On récupère l'ID du professeur depuis le middleware 'protect'
         const owner = req.user?.id;
 
-        // Le middleware 'protect' garantit que req.user.id existe, mais cette vérification est une sécurité supplémentaire.
         if (!owner) {
             return res.status(401).json({ message: "Utilisateur non authentifié." });
         }
@@ -24,13 +21,11 @@ export const createProject = async (req: Request, res: Response) => {
             githubOrg,
             minMembers,
             maxMembers,
-            repoPattern, // Sera la valeur par défaut du modèle si non fourni
+            repoPattern,
             owner
         });
 
         await newProject.save();
-
-        // On renvoie le projet nouvellement créé
         res.status(201).json(newProject);
 
     } catch (error) {
@@ -45,15 +40,43 @@ export const createProject = async (req: Request, res: Response) => {
  */
 export const getMyProjects = async (req: Request, res: Response) => {
     try {
-        // On récupère l'ID du professeur depuis le middleware 'protect'
         const ownerId = req.user?.id;
-
         const projects = await Project.find({ owner: ownerId }).sort({ createdAt: -1 });
-
         res.status(200).json(projects);
 
     } catch (error) {
         console.error("Erreur lors de la récupération des projets:", error);
         res.status(500).json({ message: 'Erreur serveur lors de la récupération des projets.' });
+    }
+};
+
+/**
+ * @desc    Récupérer un projet par son ID, avec les groupes associés
+ * @route   GET /api/projects/:id
+ */
+export const getProjectById = async (req: Request, res: Response) => {
+    try {
+        const projectId = req.params.id;
+
+        // 1. Récupérer le projet
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: 'Projet non trouvé.' });
+        }
+
+        // 2. Vérifier que le projet appartient bien au professeur connecté (sécurité)
+        if (project.owner.toString() !== req.user?.id) {
+            return res.status(403).json({ message: 'Accès non autorisé à ce projet.' });
+        }
+
+        // 3. Récupérer tous les groupes qui sont liés à ce projet
+        const groups = await Group.find({ project: projectId });
+
+        // 4. Renvoyer un objet contenant à la fois les détails du projet et la liste des groupes
+        res.json({ project, groups });
+
+    } catch (error) {
+        console.error("Erreur lors de la récupération du détail du projet:", error);
+        res.status(500).json({ message: 'Erreur serveur.' });
     }
 };

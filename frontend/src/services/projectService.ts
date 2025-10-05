@@ -52,10 +52,16 @@ const createGroupForProject = async (projectId: string, accessKey: string, membe
     return response.data;
 };
 
-// --- EXPORT ---
+const getProjectById = async (projectId: string) => {
+    const config = { headers: { Authorization: `Bearer ${getToken()}` } };
+    const response = await axios.get(`${API_PROJECTS_URL}/${projectId}`, config);
+    return response.data;
+};
 
+// --- EXPORT ---
 export const projectService = {
     getMyProjects,
     createProject,
     createGroupForProject,
+    getProjectById, // <-- Corrigé
 };

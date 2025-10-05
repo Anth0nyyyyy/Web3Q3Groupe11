@@ -4,6 +4,8 @@ import LoginPage from '../pages/LoginPage.tsx';
 import DashboardPage from '../pages/DashboardPage.tsx';
 import StudentJoinPage from '../pages/StudentJoinPage.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import ProfilePage from '../pages/ProfilePage.tsx';
+import ProjectDetailsPage from '../pages/ProjectDetailsPage.tsx';
 
 // Un composant spécial pour protéger une route
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
@@ -28,6 +30,16 @@ const AppRouter = () => {
                 <Route
                     path="/dashboard"
                     element={<PrivateRoute><DashboardPage /></PrivateRoute>}
+                />
+
+                <Route
+                    path="/profile"
+                    element={<PrivateRoute><ProfilePage /></PrivateRoute>}
+                />
+
+                <Route
+                    path="/project/:id"
+                    element={<PrivateRoute><ProjectDetailsPage /></PrivateRoute>}
                 />
 
                 {/* Route par défaut : si connecté -> dashboard, sinon -> login */}
