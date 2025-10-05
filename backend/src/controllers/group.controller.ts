@@ -7,26 +7,38 @@ import type { IProject } from '../models/Project.model.js';
 
 export const createGroup = async (req: Request, res: Response) => {
     try {
+        // Le middleware Zod a déjà validé que 'params' et 'body' ont la bonne forme.
         const { projectId, accessKey } = req.params;
         const { members } = req.body;
-
-        // --- CORRECTION : La vérification des 'params' qui rassure TypeScript ---
-        if (!projectId || !accessKey) {
-            return res.status(400).json({ message: 'ID de projet ou clé d\'accès manquante dans l\'URL.' });
-        }
 
         // 1. Valider la logique métier : la clé d'accès correspond-elle bien au projet ?
         const project: IProject | null = await Project.findById(projectId);
         if (!project || project.accessKey !== accessKey) {
-            return res.status(403).json({ message: 'Clé d\'accès invalide ou projet non trouvé.' });
+            return res.status(403).json({ message: 'Lien de projet invalide ou expiré.' });
         }
 
-        // 2. Extraire les pseudos GitHub
-        const githubUsernames = members.map((member: { githubUsername: string }) => member.githubUsername);
+        // --- NOUVELLE RÈGLE 1 : VALIDER LA TAILLE DE L'ÉQUIPE ---
+        if (members.length < project.minMembers || members.length > project.maxMembers) {
+            return res.status(400).json({
+                message: `Le nombre de membres doit être compris entre ${project.minMembers} et ${project.maxMembers}.`
+            });
+        }
+
+        const githubUsernames = members.map((member: any) => member.githubUsername);
+
+        // --- NOUVELLE RÈGLE 2 : VÉRIFIER SI UN MEMBRE EST DÉJÀ DANS UN GROUPE ---
+        const existingGroup = await Group.findOne({
+            project: projectId,
+            'members.githubUsername': { $in: githubUsernames }
+        });
+
+        if (existingGroup) {
+            return res.status(409).json({ message: 'Un ou plusieurs membres de cette équipe font déjà partie d\'un autre groupe pour ce projet.' });
+        }
 
         // 3. Appeler le service GitHub
-        // À ce stade, 'projectId' est bien une 'string'
-        const { repoUrl, groupName } = await createGithubTeamAndRepo(projectId, githubUsernames);
+        // CORRECTION : On dit à TypeScript "Je suis certain que projectId est une string ici" avec "!"
+        const { repoUrl, groupName } = await createGithubTeamAndRepo(projectId!, githubUsernames);
 
         // 4. Sauvegarder le groupe dans notre base de données
         const newGroup = new Group({
