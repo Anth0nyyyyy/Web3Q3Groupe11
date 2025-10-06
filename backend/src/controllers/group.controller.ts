@@ -58,3 +58,14 @@ export const createGroup = async (req: Request, res: Response) => {
         res.status(statusCode).json({ message: error.message || 'Erreur serveur.' });
     }
 };
+export const getPublicProjectDetails = async (req: Request, res: Response) => {
+    try {
+        const { projectId, accessKey } = req.params;
+        const project = await Project.findById(projectId).select('-instructionsContent -owner -accessKey'); // Exclure les données sensibles
+
+        if (!project) { // On ne vérifie pas la clé ici, pour pouvoir afficher "Lien invalide"
+            return res.status(404).json({ message: 'Projet non trouvé.' });
+        }
+        res.json(project);
+    } catch (error) { res.status(500).json({ message: 'Erreur serveur.' }); }
+};

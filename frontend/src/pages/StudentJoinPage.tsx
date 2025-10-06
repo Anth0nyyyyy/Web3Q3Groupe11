@@ -1,5 +1,5 @@
 // /frontend/src/pages/StudentJoinPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Box, Typography, TextField, Button, Paper, Card, CardContent, IconButton, InputAdornment, Alert, CircularProgress, Link } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
@@ -8,21 +8,41 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-// CORRECTION : Chemin d'import corrigé et utilisation de 'import type'
-import type { TeamMember } from '../types/index.ts';
+import type { TeamMember, IProject } from '../types/index.ts';
 import { projectService } from '../services/projectService.ts';
 
 const StudentJoinPage = () => {
     const { projectId, accessKey } = useParams();
+
+    const [project, setProject] = useState<IProject | null>(null);
+    const [pageLoading, setPageLoading] = useState(true);
+    const [pageError, setPageError] = useState('');
 
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [newMember, setNewMember] = useState<TeamMember>({
         lastName: '', firstName: '', githubUsername: '', matricule: ''
     });
 
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [submitLoading, setSubmitLoading] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const [success, setSuccess] = useState<{ message: string; repoUrl: string } | null>(null);
+
+    useEffect(() => {
+        const fetchProjectDetails = async () => {
+            if (projectId && accessKey) {
+                try {
+                    // Note: Il faut ajouter 'getPublicProjectDetails' au projectService
+                    const data = await projectService.getPublicProjectDetails(projectId, accessKey);
+                    setProject(data);
+                } catch (error) {
+                    setPageError("Ce lien de projet est invalide ou a expiré.");
+                } finally {
+                    setPageLoading(false);
+                }
+            }
+        };
+        fetchProjectDetails();
+    }, [projectId, accessKey]);
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
@@ -43,34 +63,33 @@ const StudentJoinPage = () => {
     };
 
     const handleSubmitProject = async () => {
-        setError('');
+        setSubmitError('');
         setSuccess(null);
-        setLoading(true);
-
-        const githubUsernames = members.map(m => m.githubUsername);
-
-        if (githubUsernames.length === 0) {
-            setError("Veuillez ajouter au moins un membre à l'équipe.");
-            setLoading(false);
-            return;
-        }
+        setSubmitLoading(true);
 
         if (!projectId || !accessKey) {
-            setError("Erreur : L'URL du projet est invalide ou corrompue.");
-            setLoading(false);
+            setSubmitError("Erreur : L'URL du projet est invalide ou corrompue.");
+            setSubmitLoading(false);
             return;
         }
 
         try {
-            // CORRECTION : On utilise la variable en appelant l'API
             const data = await projectService.createGroupForProject(projectId, accessKey, members);
             setSuccess(data);
         } catch (err: any) {
-            setError(err.response?.data?.message || "Une erreur est survenue lors de la création du groupe.");
+            setSubmitError(err.response?.data?.message || "Une erreur est survenue lors de la création du groupe.");
         } finally {
-            setLoading(false);
+            setSubmitLoading(false);
         }
     };
+
+    if (pageLoading) {
+        return <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></Container>;
+    }
+
+    if (pageError) {
+        return <Container sx={{ textAlign: 'center', py: 8 }}><Alert severity="error">{pageError}</Alert></Container>;
+    }
 
     if (success) {
         return (
@@ -89,19 +108,15 @@ const StudentJoinPage = () => {
             <Container maxWidth="sm">
                 <Box sx={{ textAlign: 'center', mb: 4 }}>
                     <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                        WEB3 HelHa 2025-2026
+                        {project?.name || 'Nom du Projet'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        Inscription jusqu'au 10/10/2025
+                        {project?.enrollmentEndDate ? `Inscription jusqu'au ${new Date(project.enrollmentEndDate).toLocaleDateString('fr-FR')}` : 'Date non définie'}
                     </Typography>
                 </Box>
                 <Paper sx={{ p: 3, borderRadius: '24px', backgroundColor: '#b7e4c7', boxShadow: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Nom du groupe</Typography>
-                    <Paper elevation={0} sx={{ p: 1.5, mb: 3, borderRadius: 2 }}>
-                        <Typography sx={{ fontWeight: 500 }}>Web3-Groupe-1</Typography>
-                    </Paper>
                     <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                        Membres de l'équipe {members.length}/4
+                        Membres de l'équipe {members.length}/{project?.maxMembers || 'X'}
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
                         {members.map((member, index) => (
@@ -120,7 +135,7 @@ const StudentJoinPage = () => {
                             </Card>
                         ))}
                     </Box>
-                    {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
+                    {submitError && <Alert severity="error" sx={{ my: 2 }}>{submitError}</Alert>}
                     <Paper sx={{ p: 2, borderRadius: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                             <TextField label="Nom" name="lastName" value={newMember.lastName} onChange={handleInputChange} size="small" InputProps={{ startAdornment: (<InputAdornment position="start"><PersonIcon /></InputAdornment>) }} />
@@ -135,11 +150,13 @@ const StudentJoinPage = () => {
                         </Button>
                     </Box>
                 </Paper>
-                <Button fullWidth variant="contained" disabled={loading} onClick={handleSubmitProject} sx={{ mt: 3, py: 1.5, fontSize: '1.1rem', backgroundColor: 'primary.main' }}>
-                    {loading ? <CircularProgress size={24} color="inherit" /> : "Créer l'équipe et le dépôt GitHub"}
+
+                <Button fullWidth variant="contained" disabled={submitLoading} onClick={handleSubmitProject} sx={{ mt: 3, py: 1.5, fontSize: '1.1rem', backgroundColor: 'primary.main' }}>
+                    {submitLoading ? <CircularProgress size={24} color="inherit" /> : "Créer l'équipe et le dépôt GitHub"}
                 </Button>
             </Container>
         </Box>
     );
 };
+
 export default StudentJoinPage;

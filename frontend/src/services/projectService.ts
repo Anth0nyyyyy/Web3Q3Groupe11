@@ -1,22 +1,13 @@
 // /frontend/src/services/projectService.ts
 import axios from 'axios';
+import type { IProject, TeamMember } from '../types/index.ts';
 
-// CORRECTION : On importe le type 'TeamMember' dont on a besoin
-import type { TeamMember } from '../types/index.ts';
-
-// --- INTERFACES & CONFIGURATION ---
+// --- CONFIGURATION ---
 
 const API_PROJECTS_URL = 'http://localhost:4000/api/projects';
 const API_GROUPS_URL = 'http://localhost:4000/api/groups';
 
-interface ProjectData {
-    name: string;
-    githubOrg: string;
-    minMembers: number;
-    maxMembers: number;
-    repoPattern?: string;
-}
-
+// Fonction utilitaire pour récupérer le token
 const getToken = () => localStorage.getItem('user_token');
 
 // --- FONCTIONS DU SERVICE ---
@@ -32,11 +23,18 @@ const getMyProjects = async () => {
 
 /**
  * Crée un nouveau projet pour le professeur connecté.
- * @param projectData - Les données du projet à créer.
+ * Accepte FormData pour permettre l'upload de fichier.
+ * @param formData - Les données du projet, y compris le fichier optionnel.
  */
-const createProject = async (projectData: ProjectData) => {
-    const config = { headers: { Authorization: `Bearer ${getToken()}` } };
-    const response = await axios.post(API_PROJECTS_URL, projectData, config);
+const createProject = async (formData: FormData) => {
+    const config = {
+        headers: {
+            Authorization: `Bearer ${getToken()}`,
+            // L'en-tête 'Content-Type' est automatiquement défini par Axios
+            // lorsqu'il détecte un objet FormData.
+        }
+    };
+    const response = await axios.post(API_PROJECTS_URL, formData, config);
     return response.data;
 };
 
@@ -44,24 +42,54 @@ const createProject = async (projectData: ProjectData) => {
  * Crée un groupe, une équipe et un dépôt GitHub pour un projet donné.
  * @param projectId - L'ID du projet.
  * @param accessKey - La clé secrète du projet.
- * @param members - La liste des membres de l'équipe. // CORRECTION : Paramètre mis à jour
+ * @param members - La liste des membres de l'équipe.
  */
 const createGroupForProject = async (projectId: string, accessKey: string, members: TeamMember[]) => {
     const url = `${API_GROUPS_URL}/create/${projectId}/${accessKey}`;
-    const response = await axios.post(url, { members }); // On envoie bien un objet { members: [...] }
+    const response = await axios.post(url, { members });
     return response.data;
 };
 
+/**
+ * Récupère un projet spécifique par son ID, avec ses groupes.
+ */
 const getProjectById = async (projectId: string) => {
     const config = { headers: { Authorization: `Bearer ${getToken()}` } };
     const response = await axios.get(`${API_PROJECTS_URL}/${projectId}`, config);
     return response.data;
 };
 
+/**
+ * Met à jour un projet existant.
+ */
+const updateProject = async (projectId: string, projectData: Partial<IProject>) => {
+    const config = { headers: { Authorization: `Bearer ${getToken()}` } };
+    const response = await axios.put(`${API_PROJECTS_URL}/${projectId}`, projectData, config);
+    return response.data;
+};
+
+/**
+ * Supprime un projet.
+ */
+const deleteProject = async (projectId: string) => {
+    const config = { headers: { Authorization: `Bearer ${getToken()}` } };
+    const response = await axios.delete(`${API_PROJECTS_URL}/${projectId}`, config);
+    return response.data;
+};
+const getPublicProjectDetails = async (projectId: string, accessKey: string) => {
+    const url = `${API_GROUPS_URL}/details/${projectId}/${accessKey}`;
+    const response = await axios.get(url);
+    return response.data;
+};
+
+
 // --- EXPORT ---
 export const projectService = {
     getMyProjects,
     createProject,
     createGroupForProject,
-    getProjectById, // <-- Corrigé
+    getProjectById,
+    updateProject,
+    deleteProject,
+    getPublicProjectDetails,
 };

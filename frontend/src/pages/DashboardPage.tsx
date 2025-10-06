@@ -1,18 +1,15 @@
 // /frontend/src/pages/DashboardPage.tsx
 import { useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom'; // Import du composant de lien
-import { Box, Typography, Card, CardContent, CardActions, Button, CircularProgress } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, Typography, Card, CardContent, CardActions, Button, CircularProgress, IconButton } from '@mui/material';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteIcon from '@mui/icons-material/Delete'; // Import de l'icône de suppression
 import CreateProjectModal from '../components/CreateProjectModal.tsx';
 
-// On définit le type de nos projets pour TypeScript
-interface IProject {
-    _id: string;
-    name: string;
-    accessKey: string;
-}
+// On importe le type IProject depuis notre fichier centralisé
+import type { IProject } from '../types/index.ts';
 
 const DashboardPage = () => {
     const [projects, setProjects] = useState<IProject[]>([]);
@@ -41,12 +38,28 @@ const DashboardPage = () => {
         setProjects(prevProjects => [newProject, ...prevProjects]);
     };
 
-    // Fonction pour gérer le clic sur le bouton "Copier" sans propager le clic au lien parent
     const handleCopyClick = (e: React.MouseEvent, project: IProject) => {
-        e.preventDefault(); // Empêche la navigation
-        e.stopPropagation(); // Arrête la propagation de l'événement
+        e.preventDefault();
+        e.stopPropagation();
         navigator.clipboard.writeText(getShareableUrl(project));
-        // Idéalement, on ajouterait une notification "Toast" ici pour confirmer la copie
+        // Idéalement, on ajouterait une notification "Toast" ici
+    };
+
+    // Nouvelle fonction pour gérer la suppression d'un projet
+    const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (window.confirm('Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible.')) {
+            try {
+                await projectService.deleteProject(projectId);
+                // On met à jour l'état du frontend pour retirer la carte sans recharger
+                setProjects(prevProjects => prevProjects.filter(p => p._id !== projectId));
+            } catch (error) {
+                console.error("Erreur lors de la suppression du projet", error);
+                alert("Une erreur est survenue lors de la suppression.");
+            }
+        }
     };
 
     return (
@@ -63,18 +76,36 @@ const DashboardPage = () => {
                         ) : (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                 {projects.map((project) => (
-                                    // CORRECTION : On enveloppe la Card dans un RouterLink pour la rendre cliquable
                                     <RouterLink to={`/project/${project._id}`} key={project._id} style={{ textDecoration: 'none' }}>
-                                        <Card sx={{ borderRadius: 2, '&:hover': { boxShadow: 3, cursor: 'pointer' } }}>
+                                        <Card sx={{ borderRadius: 2, '&:hover': { boxShadow: 3, cursor: 'pointer' }, position: 'relative' }}>
+
+                                            {/* Bouton de suppression ajouté */}
+                                            <IconButton
+                                                aria-label="supprimer projet"
+                                                size="small"
+                                                onClick={(e) => handleDeleteProject(e, project._id)}
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: 8,
+                                                    right: 8,
+                                                    color: 'error.main',
+                                                    backgroundColor: 'rgba(255,255,255,0.7)',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(255,255,255,0.9)',
+                                                    }
+                                                }}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+
                                             <CardContent>
-                                                <Typography sx={{ fontWeight: '600', color: 'text.primary' }}>{project.name}</Typography>
+                                                <Typography sx={{ fontWeight: '600', color: 'text.primary', pr: '30px' }}>{project.name}</Typography>
                                             </CardContent>
-                                            <CardActions sx={{ justifyContent: 'space-between', borderTop: '1px solid #e0e0e0', px: 1.5, py: 1 }}>
+                                            <CardActions sx={{ justifyContent: 'space-between', borderTop: '1px solid #e0e000' }}>
                                                 <Typography variant="caption">URL de partage :</Typography>
                                                 <Button
                                                     size="small"
                                                     startIcon={<ContentCopyIcon />}
-                                                    // On utilise notre nouvelle fonction pour éviter la redirection
                                                     onClick={(e) => handleCopyClick(e, project)}
                                                 >
                                                     Copier

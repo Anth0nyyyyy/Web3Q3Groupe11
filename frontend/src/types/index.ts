@@ -27,4 +27,6 @@ export interface IProject {
     maxMembers: number;
     repoPattern: string;
     accessKey: string;
+    enrollmentEndDate?: Date;
+    projectEndDate?: Date;
 }

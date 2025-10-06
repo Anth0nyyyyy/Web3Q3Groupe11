@@ -7,7 +7,7 @@ import type { IUser } from '../models/User.model.js';
 import type { IProject } from '../models/Project.model.js';
 
 export const createGithubTeamAndRepo = async (projectId: string, studentUsernames: string[]) => {
-    // 1. Récupérer les détails du projet
+    // 1. Récupérer les détails complets du projet
     const project: IProject | null = await Project.findById(projectId);
     if (!project) {
         throw new Error('Projet non trouvé.');
@@ -49,15 +49,8 @@ export const createGithubTeamAndRepo = async (projectId: string, studentUsername
     const teamAndRepoName = project.repoPattern.replace('##', newGroupNumber);
     console.log(`Génération du nom pour le nouveau groupe : ${teamAndRepoName}`);
 
-    // 5. Création de l'équipe sur GitHub
-    const { data: team } = await octokit.rest.teams.create({
-        org: project.githubOrg,
-        name: teamAndRepoName,
-        privacy: 'closed',
-    });
-    console.log(` -> Équipe "${teamAndRepoName}" créée.`);
-
-    // 6. Création du dépôt privé sur GitHub
+    // 5. Création du dépôt privé sur GitHub
+    console.log(`Création du dépôt "${teamAndRepoName}"...`);
     const { data: repo } = await octokit.rest.repos.createInOrg({
         org: project.githubOrg,
         name: teamAndRepoName,
@@ -65,7 +58,35 @@ export const createGithubTeamAndRepo = async (projectId: string, studentUsername
     });
     console.log(` -> Dépôt "${teamAndRepoName}" créé.`);
 
+    // --- NOUVELLE ÉTAPE : AJOUTER LE FICHIER DE CONSIGNES SI IL EXISTE ---
+    if (project.instructionsContent) {
+        console.log("Ajout du fichier CONSIGNES.md au dépôt...");
+        try {
+            await octokit.rest.repos.createOrUpdateFileContents({
+                owner: project.githubOrg, // Le propriétaire du dépôt est l'organisation
+                repo: teamAndRepoName,
+                path: 'CONSIGNES.md', // Nom du fichier à la racine du dépôt
+                message: 'Ajout des consignes initiales du projet', // Message du commit
+                content: Buffer.from(project.instructionsContent).toString('base64'), // Le contenu doit être encodé en Base64
+            });
+            console.log(" -> Fichier de consignes ajouté avec succès.");
+        } catch (error) {
+            console.error("ERREUR lors de l'ajout du fichier de consignes:", error);
+            // On continue même si cette étape échoue pour ne pas bloquer la création du groupe
+        }
+    }
+
+    // 6. Création de l'équipe sur GitHub
+    console.log(`Création de l'équipe "${teamAndRepoName}"...`);
+    const { data: team } = await octokit.rest.teams.create({
+        org: project.githubOrg,
+        name: teamAndRepoName,
+        privacy: 'closed',
+    });
+    console.log(` -> Équipe "${teamAndRepoName}" créée.`);
+
     // 7. Liaison de l'équipe au dépôt
+    console.log(`Liaison de l'équipe au dépôt...`);
     await octokit.rest.teams.addOrUpdateRepoPermissionsInOrg({
         org: project.githubOrg,
         team_slug: team.slug,
@@ -76,6 +97,7 @@ export const createGithubTeamAndRepo = async (projectId: string, studentUsername
     console.log(` -> Permissions accordées.`);
 
     // 8. Ajout des étudiants à l'équipe
+    console.log(`Ajout des membres à l'équipe...`);
     for (const username of studentUsernames) {
         await octokit.rest.teams.addOrUpdateMembershipForUserInOrg({
             org: project.githubOrg,

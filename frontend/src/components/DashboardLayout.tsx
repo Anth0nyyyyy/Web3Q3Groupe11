@@ -1,5 +1,6 @@
 // /frontend/src/components/DashboardLayout.tsx
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, AppBar, Toolbar, IconButton, Typography } from '@mui/material';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import BottomNav from './BottomNav.tsx';
@@ -11,6 +12,7 @@ type DashboardLayoutProps = {
 };
 
 const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
+    const navigate = useNavigate();
     return (
         // Style de fond spécifique au Dashboard
         <Box sx={{ backgroundColor: '#f7faf9', minHeight: '100vh', pb: '80px' }}>
@@ -26,7 +28,7 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
                 }}
             >
                 <Toolbar>
-                    <IconButton edge="start" sx={{ color: 'text.secondary' }}>
+                    <IconButton edge="start" sx={{ color: 'text.secondary' }} onClick={() => navigate(-1)}>
                         <ArrowBackIosNewIcon />
                     </IconButton>
                     <Typography variant="h6" sx={{ flexGrow: 1, textAlign: 'center', color: 'text.primary', fontWeight: 'bold' }}>

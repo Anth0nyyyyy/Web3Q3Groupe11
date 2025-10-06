@@ -1,7 +1,7 @@
 // /backend/src/controllers/project.controller.ts
 import type { Request, Response } from 'express';
-import Project from '../models/Project.model.js';
-import Group from '../models/Group.model.js'; // Assurez-vous que l'import est bien là
+import Project, { type IProject } from '../models/Project.model.js';
+import Group from '../models/Group.model.js';
 
 /**
  * @desc    Créer un nouveau projet pour le professeur connecté
@@ -9,23 +9,32 @@ import Group from '../models/Group.model.js'; // Assurez-vous que l'import est b
  */
 export const createProject = async (req: Request, res: Response) => {
     try {
-        const { name, githubOrg, minMembers, maxMembers, repoPattern } = req.body;
-        const owner = req.user?.id;
+        const { name, githubOrg, minMembers, maxMembers, repoPattern,enrollmentEndDate, projectEndDate } = req.body;
+        const ownerId = req.user?.id;
 
-        if (!owner) {
+        if (!ownerId) {
             return res.status(401).json({ message: "Utilisateur non authentifié." });
         }
 
-        const newProject = new Project({
+        const newProjectData: Partial<IProject> = {
             name,
             githubOrg,
             minMembers,
             maxMembers,
             repoPattern,
-            owner
-        });
+            enrollmentEndDate,
+            projectEndDate,
+            // On convertit explicitement la string en ObjectId pour satisfaire TypeScript
+            owner: ownerId
+        };
 
+        if (req.file) {
+            newProjectData.instructionsContent = req.file.buffer.toString('utf-8');
+        }
+
+        const newProject = new Project(newProjectData);
         await newProject.save();
+
         res.status(201).json(newProject);
 
     } catch (error) {
@@ -57,26 +66,78 @@ export const getMyProjects = async (req: Request, res: Response) => {
 export const getProjectById = async (req: Request, res: Response) => {
     try {
         const projectId = req.params.id;
-
-        // 1. Récupérer le projet
         const project = await Project.findById(projectId);
+
         if (!project) {
             return res.status(404).json({ message: 'Projet non trouvé.' });
         }
 
-        // 2. Vérifier que le projet appartient bien au professeur connecté (sécurité)
         if (project.owner.toString() !== req.user?.id) {
             return res.status(403).json({ message: 'Accès non autorisé à ce projet.' });
         }
 
-        // 3. Récupérer tous les groupes qui sont liés à ce projet
         const groups = await Group.find({ project: projectId });
-
-        // 4. Renvoyer un objet contenant à la fois les détails du projet et la liste des groupes
         res.json({ project, groups });
 
     } catch (error) {
         console.error("Erreur lors de la récupération du détail du projet:", error);
+        res.status(500).json({ message: 'Erreur serveur.' });
+    }
+};
+
+/**
+ * @desc    Mettre à jour un projet
+ * @route   PUT /api/projects/:id
+ */
+export const updateProject = async (req: Request, res: Response) => {
+    try {
+        const project = await Project.findById(req.params.id);
+
+        if (!project) {
+            return res.status(404).json({ message: 'Projet non trouvé.' });
+        }
+
+        if (project.owner.toString() !== req.user?.id) {
+            return res.status(403).json({ message: 'Action non autorisée.' });
+        }
+
+        project.name = req.body.name || project.name;
+        project.githubOrg = req.body.githubOrg || project.githubOrg;
+        project.minMembers = req.body.minMembers || project.minMembers;
+        project.maxMembers = req.body.maxMembers || project.maxMembers;
+        project.repoPattern = req.body.repoPattern || project.repoPattern;
+
+        const updatedProject = await project.save();
+        res.json(updatedProject);
+
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour du projet:", error);
+        res.status(500).json({ message: 'Erreur serveur lors de la mise à jour.' });
+    }
+};
+
+/**
+ * @desc    Supprimer un projet
+ * @route   DELETE /api/projects/:id
+ */
+export const deleteProject = async (req: Request, res: Response) => {
+    try {
+        const project = await Project.findById(req.params.id);
+
+        if (!project) {
+            return res.status(404).json({ message: 'Projet non trouvé.' });
+        }
+
+        if (project.owner.toString() !== req.user?.id) {
+            return res.status(403).json({ message: 'Action non autorisée.' });
+        }
+
+        await project.deleteOne();
+        await Group.deleteMany({ project: req.params.id });
+
+        res.json({ message: 'Projet supprimé avec succès.' });
+    } catch (error) {
+        console.error("Erreur lors de la suppression du projet:", error);
         res.status(500).json({ message: 'Erreur serveur.' });
     }
 };

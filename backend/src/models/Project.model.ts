@@ -4,7 +4,6 @@ import crypto from 'crypto';
 import type { IUser } from './User.model.js';
 
 // 1. Définir l'Interface qui représente un document Projet
-// C'est la "forme" que TypeScript utilisera.
 export interface IProject extends Document {
     name: string;
     githubOrg: string;
@@ -12,12 +11,16 @@ export interface IProject extends Document {
     maxMembers: number;
     repoPattern: string;
     accessKey: string;
-    // 'owner' peut être juste un ID, ou l'objet User complet si on utilise .populate()
-    owner: Schema.Types.ObjectId | IUser;
+    enrollmentEndDate?: Date;
+    projectEndDate?: Date;
+
+    // --- CORRECTION : On autorise 'string' comme type valide pour 'owner' ---
+    owner: Schema.Types.ObjectId | IUser | string;
+
+    instructionsContent?: string;
 }
 
 // 2. Créer le Schéma correspondant à l'Interface
-// C'est le "plan de construction" pour Mongoose.
 const projectSchema = new Schema<IProject>({
     name: { type: String, required: true, trim: true },
     githubOrg: { type: String, required: true, trim: true },
@@ -25,12 +28,14 @@ const projectSchema = new Schema<IProject>({
     maxMembers: { type: Number, required: true, min: 1 },
     repoPattern: { type: String, default: 'Web3-Groupe-##' },
     accessKey: { type: String, unique: true },
-    owner: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+    owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    instructionsContent: { type: String },
+    enrollmentEndDate: { type: Date },
+    projectEndDate: { type: Date },
 }, { timestamps: true });
 
 // 3. Ajouter le Middleware (hook) avant la sauvegarde
 projectSchema.pre('save', function(next) {
-    // 'this' fait référence au document qui va être sauvegardé
     if (this.isNew && !this.accessKey) {
         this.accessKey = crypto.randomBytes(16).toString('hex');
     }
