@@ -7,6 +7,8 @@ import { createGroupSchema } from '../schemas/group.schema.js';
 
 const router = Router();
 
+
+console.log("INFO: Le routeur de groupe est chargé.");
 // C'est la route "magique" publique
 router.get('/details/:projectId/:accessKey', getPublicProjectDetails);
 router.post('/create/:projectId/:accessKey', validate(createGroupSchema), createGroup);

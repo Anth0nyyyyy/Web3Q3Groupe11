@@ -59,13 +59,17 @@ export const createGroup = async (req: Request, res: Response) => {
     }
 };
 export const getPublicProjectDetails = async (req: Request, res: Response) => {
+    console.log(`[${new Date().toISOString()}] REQUÊTE REÇUE sur /details`);
     try {
         const { projectId, accessKey } = req.params;
-        const project = await Project.findById(projectId).select('-instructionsContent -owner -accessKey'); // Exclure les données sensibles
+        console.log(` -> Recherche du projet avec ID: ${projectId}`);
+        const project = await Project.findById(projectId).select('-instructionsContent -owner -accessKey');
+        console.log(' -> Recherche terminée. Projet trouvé :', project ? 'Oui' : 'Non'); // Exclure les données sensibles
 
         if (!project) { // On ne vérifie pas la clé ici, pour pouvoir afficher "Lien invalide"
             return res.status(404).json({ message: 'Projet non trouvé.' });
         }
+        console.log(' -> Envoi de la réponse au client.');
         res.json(project);
     } catch (error) { res.status(500).json({ message: 'Erreur serveur.' }); }
 };

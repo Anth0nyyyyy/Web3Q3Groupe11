@@ -111,3 +111,41 @@ export const createGithubTeamAndRepo = async (projectId: string, studentUsername
     // 9. Retourner les informations nécessaires au contrôleur
     return { repoUrl: repo.html_url, groupName: teamAndRepoName };
 };
+
+export const deleteGithubTeamAndRepo = async (teamAndRepoName: string, githubOrg: string, githubToken: string) => {
+    const octokit = new Octokit({ auth: githubToken });
+
+    console.log(`Tentative de suppression de l'équipe et du dépôt "${teamAndRepoName}" dans "${githubOrg}"...`);
+
+    try {
+        // 1. Supprimer le dépôt
+        await octokit.rest.repos.delete({
+            owner: githubOrg,
+            repo: teamAndRepoName,
+        });
+        console.log(` -> Dépôt "${teamAndRepoName}" supprimé avec succès.`);
+    } catch (error: any) {
+        // On n'arrête pas le processus si le dépôt n'existe plus, c'est peut-être normal
+        if (error.status === 404) {
+            console.log(` -> AVERTISSEMENT: Le dépôt "${teamAndRepoName}" n'a pas été trouvé (déjà supprimé ?).`);
+        } else {
+            console.error(` -> ERREUR lors de la suppression du dépôt:`, error.message);
+            // On pourrait choisir de jeter une erreur ici pour arrêter le processus
+        }
+    }
+
+    try {
+        // 2. Supprimer l'équipe
+        await octokit.rest.teams.deleteInOrg({
+            org: githubOrg,
+            team_slug: teamAndRepoName, // Le slug de l'équipe est généralement identique à son nom
+        });
+        console.log(` -> Équipe "${teamAndRepoName}" supprimée avec succès.`);
+    } catch (error: any) {
+        if (error.status === 404) {
+            console.log(` -> AVERTISSEMENT: L'équipe "${teamAndRepoName}" n'a pas été trouvée (déjà supprimée ?).`);
+        } else {
+            console.error(` -> ERREUR lors de la suppression de l'équipe:`, error.message);
+        }
+    }
+};

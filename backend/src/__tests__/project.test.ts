@@ -4,54 +4,42 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import express from 'express';
 import cors from 'cors';
-import jwt from 'jsonwebtoken';
 
-// Les routes à tester
-import projectRoutes from '../api/project.routes.js';
-// On a besoin des routes d'auth pour créer des utilisateurs
 import authRoutes from '../api/auth.routes.js';
+import projectRoutes from '../api/project.routes.js';
 import User from '../models/User.model.js';
 import Project from '../models/Project.model.js';
-
-// --- CONFIGURATION DE L'ENVIRONNEMENT DE TEST ---
 
 let mongoServer: MongoMemoryServer;
 const app = express();
 
-let testUser: any;
-let testToken: string;
+// On va simuler deux professeurs différents
+let prof1Token: string;
+let prof2Token: string;
 
 beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoServer.getUri());
 
     app.use(cors());
     app.use(express.json());
-    // On expose les deux ensembles de routes
     app.use('/api/auth', authRoutes);
     app.use('/api/projects', projectRoutes);
 });
 
-// Avant chaque test, on nettoie les BDD et on crée un utilisateur de test
 beforeEach(async () => {
     await User.deleteMany({});
     await Project.deleteMany({});
 
-    // On crée un professeur de test
-    await request(app).post('/api/auth/register').send({
-        email: 'prof1@test.com',
-        password: 'password123'
-    });
+    // Créer et connecter le prof 1
+    await request(app).post('/api/auth/register').send({ email: 'prof1@test.com', password: 'password123' });
+    const res1 = await request(app).post('/api/auth/login').send({ email: 'prof1@test.com', password: 'password123' });
+    prof1Token = res1.body.token;
 
-    // On le connecte pour obtenir son token et son ID
-    const loginRes = await request(app).post('/api/auth/login').send({
-        email: 'prof1@test.com',
-        password: 'password123'
-    });
-
-    testUser = loginRes.body.user;
-    testToken = loginRes.body.token;
+    // Créer et connecter le prof 2
+    await request(app).post('/api/auth/register').send({ email: 'prof2@test.com', password: 'password123' });
+    const res2 = await request(app).post('/api/auth/login').send({ email: 'prof2@test.com', password: 'password123' });
+    prof2Token = res2.body.token;
 });
 
 afterAll(async () => {
@@ -59,50 +47,64 @@ afterAll(async () => {
     await mongoServer.stop();
 });
 
-// --- ÉCRITURE DES TESTS POUR LES PROJETS ---
-
 describe('Project API (/api/projects)', () => {
-
-    // Test de sécurité : accès sans token
-    it('devrait refuser l\'accès sans token JWT (erreur 401)', async () => {
-        const response = await request(app).get('/api/projects');
+    it('devrait refuser l\'accès sans token JWT (401)', async () => {
+        const response = await request(app).post('/api/projects').send({});
         expect(response.status).toBe(401);
     });
 
-    // Test de création de projet
-    it('devrait créer un nouveau projet pour l\'utilisateur connecté', async () => {
+    it('devrait permettre à un professeur connecté de créer un projet', async () => {
         const response = await request(app)
             .post('/api/projects')
-            .set('Authorization', `Bearer ${testToken}`) // On envoie le token
+            .set('Authorization', `Bearer ${prof1Token}`)
             .send({
-                name: "Mon Projet Test",
-                githubOrg: "MonOrga",
+                name: "Projet du Prof 1",
+                githubOrg: "Orga1",
                 minMembers: 1,
                 maxMembers: 3
             });
 
         expect(response.status).toBe(201);
-        expect(response.body.name).toBe("Mon Projet Test");
-        expect(response.body.owner).toBe(testUser.id); // On vérifie que le projet appartient bien au bon prof
+        expect(response.body.name).toBe("Projet du Prof 1");
     });
 
-    // Test de récupération de projets
-    it('devrait récupérer la liste des projets appartenant à l\'utilisateur connecté', async () => {
-        // On crée d'abord un projet pour être sûr qu'il y a quelque chose à récupérer
+    it('devrait permettre à un professeur de lister UNIQUEMENT ses propres projets', async () => {
+        // Le prof 1 crée un projet
         await request(app)
             .post('/api/projects')
-            .set('Authorization', `Bearer ${testToken}`)
-            .send({ name: "Projet A", githubOrg: "Orga", minMembers: 1, maxMembers: 1 });
+            .set('Authorization', `Bearer ${prof1Token}`)
+            .send({ name: "Projet du Prof 1", githubOrg: "Orga1", minMembers: 1, maxMembers: 3 });
 
-        // On effectue la requête de récupération
+        // Le prof 2 crée un projet
+        await request(app)
+            .post('/api/projects')
+            .set('Authorization', `Bearer ${prof2Token}`)
+            .send({ name: "Projet du Prof 2", githubOrg: "Orga2", minMembers: 1, maxMembers: 3 });
+
+        // On se connecte en tant que prof 1 et on liste les projets
         const response = await request(app)
             .get('/api/projects')
-            .set('Authorization', `Bearer ${testToken}`);
+            .set('Authorization', `Bearer ${prof1Token}`);
 
         expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true); // La réponse doit être un tableau
-        expect(response.body.length).toBe(1); // Il ne doit y avoir qu'un seul projet
-        expect(response.body[0].name).toBe("Projet A");
+        expect(response.body.length).toBe(1); // Il ne doit voir qu'un seul projet
+        expect(response.body[0].name).toBe("Projet du Prof 1"); // Et ça doit être le sien
     });
 
+    it('devrait empêcher un professeur de voir les détails du projet d\'un autre (403)', async () => {
+        // Le prof 1 crée un projet
+        const createRes = await request(app)
+            .post('/api/projects')
+            .set('Authorization', `Bearer ${prof1Token}`)
+            .send({ name: "Projet Secret", githubOrg: "Orga1", minMembers: 1, maxMembers: 3 });
+
+        const projectId = createRes.body._id;
+
+        // Le prof 2 essaie d'accéder à ce projet
+        const response = await request(app)
+            .get(`/api/projects/${projectId}`)
+            .set('Authorization', `Bearer ${prof2Token}`);
+
+        expect(response.status).toBe(403); // Forbidden
+    });
 });

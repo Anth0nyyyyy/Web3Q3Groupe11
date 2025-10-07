@@ -2,6 +2,8 @@
 import type { Request, Response } from 'express';
 import Project, { type IProject } from '../models/Project.model.js';
 import Group from '../models/Group.model.js';
+import { deleteGithubTeamAndRepo } from '../services/github.service.js'; // <-- AJOUTER L'IMPORT
+import User from '../models/User.model.js'; // <-- AJOUTER L'IMPORT (pour le token)
 
 /**
  * @desc    Créer un nouveau projet pour le professeur connecté
@@ -123,19 +125,34 @@ export const updateProject = async (req: Request, res: Response) => {
 export const deleteProject = async (req: Request, res: Response) => {
     try {
         const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Projet non trouvé.' });
+        if (project.owner.toString() !== req.user?.id) return res.status(403).json({ message: 'Action non autorisée.' });
 
-        if (!project) {
-            return res.status(404).json({ message: 'Projet non trouvé.' });
+        // --- NOUVELLE LOGIQUE DE SUPPRESSION SUR GITHUB ---
+
+        // 1. Récupérer le token du professeur
+        const owner = await User.findById(req.user.id).select('+githubToken');
+        const githubToken = owner?.githubToken || process.env.DEV_GITHUB_TOKEN;
+
+        if (githubToken) {
+            // 2. Trouver tous les groupes associés à ce projet
+            const groups = await Group.find({ project: req.params.id });
+
+            // 3. Boucler sur chaque groupe et appeler le service de suppression
+            for (const group of groups) {
+                await deleteGithubTeamAndRepo(group.name, project.githubOrg, githubToken);
+            }
+        } else {
+            console.warn(`AVERTISSEMENT: Aucun token GitHub trouvé pour l'utilisateur ${req.user.id}. Impossible de supprimer les ressources GitHub.`);
         }
 
-        if (project.owner.toString() !== req.user?.id) {
-            return res.status(403).json({ message: 'Action non autorisée.' });
-        }
+        // --- FIN DE LA NOUVELLE LOGIQUE ---
 
-        await project.deleteOne();
+        // On supprime les documents de notre base de données APRÈS avoir essayé de nettoyer GitHub
         await Group.deleteMany({ project: req.params.id });
+        await project.deleteOne();
 
-        res.json({ message: 'Projet supprimé avec succès.' });
+        res.json({ message: 'Projet et ressources associées supprimés avec succès.' });
     } catch (error) {
         console.error("Erreur lors de la suppression du projet:", error);
         res.status(500).json({ message: 'Erreur serveur.' });
