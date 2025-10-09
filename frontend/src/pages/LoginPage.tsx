@@ -1,4 +1,5 @@
 // /frontend/src/pages/LoginPage.tsx
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Box, Typography, TextField, Button, InputAdornment, CircularProgress, Alert } from '@mui/material';
@@ -8,7 +9,6 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { authService } from '../services/authService.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 
-// On importe notre nouveau fichier de style
 import './LoginPage.scss';
 
 const LoginPage = () => {
@@ -29,7 +29,17 @@ const LoginPage = () => {
             login(data.token);
             navigate('/dashboard');
         } catch (err: any) {
-            const errorMessage = err.response?.data?.message || 'Une erreur est survenue.';
+            console.error("DÉTAILS COMPLETS DE L'ERREUR:", err.response);
+
+            const status = err.response?.status;
+            let errorMessage = 'Une erreur de connexion est survenue. Veuillez réessayer.';
+
+            if (status === 401 || status === 403) {
+                errorMessage = 'L\'adresse e-mail ou le mot de passe est incorrect.';
+            } else if (status === 404) {
+                errorMessage = 'Aucun compte n\'est associé à cette adresse e-mail.';
+            }
+
             setError(errorMessage);
         } finally {
             setLoading(false);
@@ -50,16 +60,35 @@ const LoginPage = () => {
                 <Box component="form" onSubmit={handleSubmit} noValidate className="login-form">
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
+                    {}
                     <TextField
-                        margin="normal" required fullWidth placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
-                        InputProps={{ startAdornment: (<InputAdornment position="start"><MailOutlineIcon color="secondary" /></InputAdornment>) }}
+                        margin="normal"
+                        required
+                        fullWidth
+                        label="Adresse e-mail"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        InputProps={{
+                            startAdornment: (<InputAdornment position="start"><MailOutlineIcon color="secondary" /></InputAdornment>)
+                        }}
                     />
                     <TextField
-                        margin="normal" required fullWidth placeholder="Mot de passe" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                        InputProps={{ startAdornment: (<InputAdornment position="start"><LockOutlinedIcon color="secondary" /></InputAdornment>) }}
+                        margin="normal"
+                        required
+                        fullWidth
+                        label="Mot de passe"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        InputProps={{
+                            startAdornment: (<InputAdornment position="start"><LockOutlinedIcon color="secondary" /></InputAdornment>)
+                        }}
                     />
                     <Button
-                        type="submit" fullWidth variant="contained" disabled={loading}
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        disabled={loading}
                         className="submit-button"
                     >
                         {loading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter'}
