@@ -1,20 +1,27 @@
 // /frontend/src/pages/DashboardPage.tsx
+
 import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Typography, Card, CardContent, CardActions, Button, CircularProgress, IconButton } from '@mui/material';
+import {
+    Box, Typography, Card, CardContent, CardActions, Button, CircularProgress, IconButton,
+    // NOUVEAUX IMPORTS
+    Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
+} from '@mui/material';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteIcon from '@mui/icons-material/Delete'; // Import de l'icône de suppression
+import DeleteIcon from '@mui/icons-material/Delete';
 import CreateProjectModal from '../components/CreateProjectModal.tsx';
-
-// On importe le type IProject depuis notre fichier centralisé
 import type { IProject } from '../types/index.ts';
 
 const DashboardPage = () => {
     const [projects, setProjects] = useState<IProject[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // NOUVEAUX ÉTATS pour la modale de confirmation
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [projectToDelete, setProjectToDelete] = useState<IProject | null>(null);
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -30,9 +37,7 @@ const DashboardPage = () => {
         fetchProjects();
     }, []);
 
-    const getShareableUrl = (project: IProject) => {
-        return `${window.location.origin}/join/${project._id}/${project.accessKey}`;
-    };
+    const getShareableUrl = (project: IProject) => `${window.location.origin}/join/${project._id}/${project.accessKey}`;
 
     const handleProjectCreated = (newProject: IProject) => {
         setProjects(prevProjects => [newProject, ...prevProjects]);
@@ -42,32 +47,37 @@ const DashboardPage = () => {
         e.preventDefault();
         e.stopPropagation();
         navigator.clipboard.writeText(getShareableUrl(project));
-        // Idéalement, on ajouterait une notification "Toast" ici
     };
 
-    // Nouvelle fonction pour gérer la suppression d'un projet
-    const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
+    // NOUVELLE FONCTION pour ouvrir la modale
+    const openDeleteConfirm = (e: React.MouseEvent, project: IProject) => {
         e.preventDefault();
         e.stopPropagation();
+        setProjectToDelete(project);
+        setIsDeleteConfirmOpen(true);
+    };
 
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible.')) {
-            try {
-                await projectService.deleteProject(projectId);
-                // On met à jour l'état du frontend pour retirer la carte sans recharger
-                setProjects(prevProjects => prevProjects.filter(p => p._id !== projectId));
-            } catch (error) {
-                console.error("Erreur lors de la suppression du projet", error);
-                alert("Une erreur est survenue lors de la suppression.");
-            }
+    // FONCTION MODIFIÉE pour supprimer après confirmation
+    const handleDeleteProject = async () => {
+        if (!projectToDelete) return; // Sécurité
+
+        try {
+            await projectService.deleteProject(projectToDelete._id);
+            setProjects(prevProjects => prevProjects.filter(p => p._id !== projectToDelete._id));
+        } catch (error) {
+            console.error("Erreur lors de la suppression du projet", error);
+            alert("Une erreur est survenue lors de la suppression.");
+        } finally {
+            // On ferme la modale et on réinitialise l'état
+            setIsDeleteConfirmOpen(false);
+            setProjectToDelete(null);
         }
     };
 
     return (
         <DashboardLayout title="Projets">
             {loading ? (
-                <Box className="dashboard-loading">
-                    <CircularProgress />
-                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
             ) : (
                 <Box>
                     <Box className="projects-container">
@@ -81,9 +91,9 @@ const DashboardPage = () => {
                                             <IconButton
                                                 aria-label="supprimer projet"
                                                 size="small"
-                                                onClick={(e) => handleDeleteProject(e, project._id)}
-                                                className="delete-button"
-                                                color="error"
+                                                // On appelle la nouvelle fonction ici
+                                                onClick={(e) => openDeleteConfirm(e, project)}
+                                                className="delete-button" color="error"
                                             >
                                                 <DeleteIcon fontSize="small" />
                                             </IconButton>
@@ -92,13 +102,7 @@ const DashboardPage = () => {
                                             </CardContent>
                                             <CardActions className="card-actions">
                                                 <Typography variant="caption">URL de partage :</Typography>
-                                                <Button
-                                                    size="small"
-                                                    startIcon={<ContentCopyIcon />}
-                                                    onClick={(e) => handleCopyClick(e, project)}
-                                                >
-                                                    Copier
-                                                </Button>
+                                                <Button size="small" startIcon={<ContentCopyIcon />} onClick={(e) => handleCopyClick(e, project)}>Copier</Button>
                                             </CardActions>
                                         </Card>
                                     </RouterLink>
@@ -106,24 +110,27 @@ const DashboardPage = () => {
                             </Box>
                         )}
                     </Box>
-
-                    <Button
-                        fullWidth
-                        variant="contained"
-                        color="primary"
-                        className="create-project-button"
-                        onClick={() => setIsModalOpen(true)}
-                    >
+                    <Button fullWidth variant="contained" color="primary" className="create-project-button" onClick={() => setIsModalOpen(true)}>
                         Créer un nouveau projet
                     </Button>
                 </Box>
             )}
 
-            <CreateProjectModal
-                open={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onProjectCreated={handleProjectCreated}
-            />
+            <CreateProjectModal open={isModalOpen} onClose={() => setIsModalOpen(false)} onProjectCreated={handleProjectCreated}/>
+
+            {/* NOUVEAU BLOC JSX : La modale de confirmation */}
+            <Dialog open={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)}>
+                <DialogTitle>Confirmer la suppression</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Êtes-vous sûr de vouloir supprimer le projet "{projectToDelete?.name}" ? Cette action est irréversible.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsDeleteConfirmOpen(false)}>Annuler</Button>
+                    <Button onClick={handleDeleteProject} color="error" autoFocus>Supprimer</Button>
+                </DialogActions>
+            </Dialog>
         </DashboardLayout>
     );
 };
