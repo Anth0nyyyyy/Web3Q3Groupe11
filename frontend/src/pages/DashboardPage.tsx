@@ -65,43 +65,32 @@ const DashboardPage = () => {
     return (
         <DashboardLayout title="Projets">
             {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <Box className="dashboard-loading">
                     <CircularProgress />
                 </Box>
             ) : (
                 <Box>
-                    <Box sx={{ backgroundColor: '#b7e4c7', p: 1, borderRadius: 4 }}>
+                    <Box className="projects-container">
                         {projects.length === 0 ? (
-                            <Typography sx={{ textAlign: 'center', p: 2 }}>Aucun projet pour le moment.</Typography>
+                            <Typography className="no-projects-message">Aucun projet pour le moment.</Typography>
                         ) : (
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Box className="projects-list">
                                 {projects.map((project) => (
-                                    <RouterLink to={`/project/${project._id}`} key={project._id} style={{ textDecoration: 'none' }}>
-                                        <Card sx={{ borderRadius: 2, '&:hover': { boxShadow: 3, cursor: 'pointer' }, position: 'relative' }}>
-
-                                            {/* Bouton de suppression ajouté */}
+                                    <RouterLink to={`/project/${project._id}`} key={project._id} className="project-card-link">
+                                        <Card className="project-card">
                                             <IconButton
                                                 aria-label="supprimer projet"
                                                 size="small"
                                                 onClick={(e) => handleDeleteProject(e, project._id)}
-                                                sx={{
-                                                    position: 'absolute',
-                                                    top: 8,
-                                                    right: 8,
-                                                    color: 'error.main',
-                                                    backgroundColor: 'rgba(255,255,255,0.7)',
-                                                    '&:hover': {
-                                                        backgroundColor: 'rgba(255,255,255,0.9)',
-                                                    }
-                                                }}
+                                                className="delete-button"
+                                                color="error"
                                             >
                                                 <DeleteIcon fontSize="small" />
                                             </IconButton>
-
                                             <CardContent>
-                                                <Typography sx={{ fontWeight: '600', color: 'text.primary', pr: '30px' }}>{project.name}</Typography>
+                                                <Typography className="project-name">{project.name}</Typography>
                                             </CardContent>
-                                            <CardActions sx={{ justifyContent: 'space-between', borderTop: '1px solid #e0e000' }}>
+                                            <CardActions className="card-actions">
                                                 <Typography variant="caption">URL de partage :</Typography>
                                                 <Button
                                                     size="small"
@@ -121,7 +110,8 @@ const DashboardPage = () => {
                     <Button
                         fullWidth
                         variant="contained"
-                        sx={{ mt: 3, py: 1.5, fontSize: '1rem', backgroundColor: 'primary.main' }}
+                        color="primary"
+                        className="create-project-button"
                         onClick={() => setIsModalOpen(true)}
                     >
                         Créer un nouveau projet
