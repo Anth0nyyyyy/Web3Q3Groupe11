@@ -1,12 +1,11 @@
 // /frontend/src/pages/DashboardPage.tsx
 
-import { useEffect, useState, useMemo } from 'react'; // On ajoute useMemo pour l'optimisation
+import { useEffect, useState, useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
     Box, Typography, Card, CardContent, CardActions, Button, CircularProgress, IconButton,
     Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-    Snackbar, Alert,
-    TextField // <-- L'UNIQUE NOUVEL IMPORT
+    Snackbar, Alert, TextField, Stack, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
@@ -25,8 +24,8 @@ const DashboardPage = () => {
     const [projectToDelete, setProjectToDelete] = useState<IProject | null>(null);
     const [snackbar, setSnackbar] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
 
-    // NOUVEAU : Un seul état pour la recherche
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('creation-desc');
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -42,32 +41,65 @@ const DashboardPage = () => {
         fetchProjects();
     }, []);
 
-    // NOUVEAU : Logique pour filtrer les projets
-    // useMemo garantit que le filtrage ne s'exécute que si les projets ou la recherche changent.
     const displayedProjects = useMemo(() => {
-        // Si la recherche est vide, on retourne tous les projets.
-        if (!searchTerm) {
-            return projects;
-        }
-        // Sinon, on filtre
-        return projects.filter(project =>
-            project.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [projects, searchTerm]);
+        return [...projects]
+            .filter(project =>
+                project.name.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .sort((a, b) => {
+                switch (sortBy) {
+                    case 'creation-desc':
+                        return b._id.localeCompare(a._id);
+                    case 'creation-asc':
+                        return a._id.localeCompare(b._id);
+                    case 'deadline-asc':
+                        return new Date(a.projectEndDate).getTime() - new Date(b.projectEndDate).getTime();
+                    case 'name-asc':
+                        return a.name.localeCompare(b.name);
+                    default:
+                        return 0;
+                }
+            });
+    }, [projects, searchTerm, sortBy]);
 
-
-    // Les autres fonctions (handlers) restent exactement les mêmes.
     const getShareableUrl = (project: IProject) => `${window.location.origin}/join/${project._id}/${project.accessKey}`;
-    const handleProjectCreated = (newProject: IProject) => setProjects(prevProjects => [newProject, ...prevProjects]);
+
+    const handleProjectCreated = (newProject: IProject) => {
+        setProjects(prevProjects => [newProject, ...prevProjects]);
+    };
+
     const openDeleteConfirm = (e: React.MouseEvent, project: IProject) => {
         e.preventDefault();
         e.stopPropagation();
         setProjectToDelete(project);
         setIsDeleteConfirmOpen(true);
     };
-    const handleDeleteProject = async () => { /* ... (inchangé) ... */ };
-    const handleCopyClick = (e: React.MouseEvent, project: IProject) => { /* ... (inchangé) ... */ };
-    const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
+
+    const handleDeleteProject = async () => {
+        if (!projectToDelete) return;
+        try {
+            await projectService.deleteProject(projectToDelete._id);
+            setProjects(prevProjects => prevProjects.filter(p => p._id !== projectToDelete._id));
+            setSnackbar({ open: true, message: 'Projet supprimé avec succès !' });
+        } catch (error) {
+            console.error("Erreur lors de la suppression du projet", error);
+            setSnackbar({ open: true, message: 'Erreur lors de la suppression.' });
+        } finally {
+            setIsDeleteConfirmOpen(false);
+            setProjectToDelete(null);
+        }
+    };
+
+    const handleCopyClick = (e: React.MouseEvent, project: IProject) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigator.clipboard.writeText(getShareableUrl(project));
+        setSnackbar({ open: true, message: 'Lien de partage copié !' });
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
 
     return (
         <DashboardLayout title="Projets">
@@ -75,9 +107,8 @@ const DashboardPage = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
             ) : (
                 <Box>
-                    {/* NOUVEAU : La barre de recherche (s'affiche seulement s'il y a des projets) */}
                     {projects.length > 0 && (
-                        <Box sx={{ mb: 3 }}>
+                        <Stack spacing={2} sx={{ mb: 3 }}>
                             <TextField
                                 fullWidth
                                 label="Rechercher un projet..."
@@ -85,14 +116,27 @@ const DashboardPage = () => {
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                        </Box>
+                            <FormControl sx={{ minWidth: 220 }}>
+                                <InputLabel>Trier par</InputLabel>
+                                <Select
+                                    value={sortBy}
+                                    label="Trier par"
+                                    // LA SOLUTION SÛRE : On dit à TypeScript que la valeur est une 'string'
+                                    onChange={(e) => setSortBy(e.target.value as string)}
+                                >
+                                    <MenuItem value="creation-desc">Les plus récents d'abord</MenuItem>
+                                    <MenuItem value="creation-asc">Les plus anciens d'abord</MenuItem>
+                                    <MenuItem value="deadline-asc">Échéance la plus proche</MenuItem>
+                                    <MenuItem value="name-asc">Ordre alphabétique (A-Z)</MenuItem>
+                                    <MenuItem value="name-desc">Ordre alphabétique (Z-A)</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Stack>
                     )}
 
-                    {/* MODIFICATION : On vérifie la longueur de `displayedProjects` */}
                     {displayedProjects.length === 0 ? (
                         <Box sx={{ textAlign: 'center', py: 5 }}>
                             <AddCircleOutlineIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
-                            {/* MODIFICATION : Le message s'adapte à la recherche */}
                             <Typography variant="h6" sx={{ mb: 1 }}>
                                 {searchTerm ? 'Aucun projet ne correspond à votre recherche' : 'Vous n\'avez pas encore de projet'}
                             </Typography>
@@ -102,7 +146,6 @@ const DashboardPage = () => {
                         </Box>
                     ) : (
                         <Box className="projects-list">
-                            {/* MODIFICATION : On affiche les projets filtrés */}
                             {displayedProjects.map((project) => (
                                 <RouterLink to={`/project/${project._id}`} key={project._id} className="project-card-link">
                                     <Card className="project-card">
@@ -140,12 +183,31 @@ const DashboardPage = () => {
                 </Box>
             )}
 
-            {/* Le reste (modales et snackbar) est inchangé et stable */}
-            <CreateProjectModal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onProjectCreated={handleProjectCreated} />
+            <CreateProjectModal
+                open={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onProjectCreated={handleProjectCreated}
+            />
+
             <Dialog open={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)}>
-                {/* ... */}
+                <DialogTitle>Confirmer la suppression</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Êtes-vous sûr de vouloir supprimer le projet "{projectToDelete?.name}" ? Cette action est irréversible.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsDeleteConfirmOpen(false)}>Annuler</Button>
+                    <Button onClick={handleDeleteProject} color="error" autoFocus>Supprimer</Button>
+                </DialogActions>
             </Dialog>
-            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
                 <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
                     {snackbar.message}
                 </Alert>
