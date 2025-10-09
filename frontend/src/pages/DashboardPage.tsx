@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
     Box, Typography, Card, CardContent, CardActions, Button, CircularProgress, IconButton,
-    // NOUVEAUX IMPORTS
-    Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
+    Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar, Alert
 } from '@mui/material';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
@@ -18,10 +17,10 @@ const DashboardPage = () => {
     const [projects, setProjects] = useState<IProject[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    // NOUVEAUX ÉTATS pour la modale de confirmation
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [projectToDelete, setProjectToDelete] = useState<IProject | null>(null);
+    const [snackbar, setSnackbar] = useState<{ open: boolean, message: string }>({ open: false, message: ''
+    });
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -47,6 +46,7 @@ const DashboardPage = () => {
         e.preventDefault();
         e.stopPropagation();
         navigator.clipboard.writeText(getShareableUrl(project));
+        setSnackbar({ open: true, message: 'Lien du projet copié !' });
     };
 
     // NOUVELLE FONCTION pour ouvrir la modale
@@ -59,20 +59,22 @@ const DashboardPage = () => {
 
     // FONCTION MODIFIÉE pour supprimer après confirmation
     const handleDeleteProject = async () => {
-        if (!projectToDelete) return; // Sécurité
+        if (!projectToDelete) return;
 
         try {
             await projectService.deleteProject(projectToDelete._id);
             setProjects(prevProjects => prevProjects.filter(p => p._id !== projectToDelete._id));
+            setSnackbar({ open: true, message: 'Projet supprimé avec succès !' });
         } catch (error) {
             console.error("Erreur lors de la suppression du projet", error);
             alert("Une erreur est survenue lors de la suppression.");
         } finally {
-            // On ferme la modale et on réinitialise l'état
             setIsDeleteConfirmOpen(false);
             setProjectToDelete(null);
         }
     };
+
+    const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
     return (
         <DashboardLayout title="Projets">
@@ -118,7 +120,7 @@ const DashboardPage = () => {
 
             <CreateProjectModal open={isModalOpen} onClose={() => setIsModalOpen(false)} onProjectCreated={handleProjectCreated}/>
 
-            {/* NOUVEAU BLOC JSX : La modale de confirmation */}
+            {}
             <Dialog open={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)}>
                 <DialogTitle>Confirmer la suppression</DialogTitle>
                 <DialogContent>
@@ -131,6 +133,11 @@ const DashboardPage = () => {
                     <Button onClick={handleDeleteProject} color="error" autoFocus>Supprimer</Button>
                 </DialogActions>
             </Dialog>
+            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </DashboardLayout>
     );
 };
