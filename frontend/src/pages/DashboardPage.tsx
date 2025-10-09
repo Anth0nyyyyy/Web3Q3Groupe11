@@ -10,6 +10,7 @@ import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CreateProjectModal from '../components/CreateProjectModal.tsx';
 import type { IProject } from '../types/index.ts';
 
@@ -84,8 +85,16 @@ const DashboardPage = () => {
                 <Box>
                     <Box className="projects-container">
                         {projects.length === 0 ? (
-                            <Typography className="no-projects-message">Aucun projet pour le moment.</Typography>
-                        ) : (
+                            <Box sx={{ textAlign: 'center', py: 5 }}>
+                                <AddCircleOutlineIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+                                <Typography variant="h6" sx={{ mb: 1 }}>
+                                    Vous n'avez pas encore de projet
+                                </Typography>
+                                <Typography color="text.secondary">
+                                    Cliquez sur le bouton ci-dessous pour en créer un.
+                                </Typography>
+                            </Box>
+                            ) : (
                             <Box className="projects-list">
                                 {projects.map((project) => (
                                     <RouterLink to={`/project/${project._id}`} key={project._id} className="project-card-link">
@@ -93,7 +102,6 @@ const DashboardPage = () => {
                                             <IconButton
                                                 aria-label="supprimer projet"
                                                 size="small"
-                                                // On appelle la nouvelle fonction ici
                                                 onClick={(e) => openDeleteConfirm(e, project)}
                                                 className="delete-button" color="error"
                                             >
