@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Box, Typography, TextField, Button, InputAdornment, CircularProgress, Alert } from '@mui/material';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-
+import { Box, Typography, TextField, Button, CircularProgress } from '@mui/material';
 import { authService } from '../services/authService.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 
+// On importe les deux illustrations depuis le dossier assets
+import CommitTree from '../assets/CommitTree.png';
+import BackgroundShapes from '../assets/BackgroundShapes.png'; // <-- VOTRE IMAGE PERSONNALISÉE
 import './LoginPage.scss';
 
 const LoginPage = () => {
@@ -29,17 +29,7 @@ const LoginPage = () => {
             login(data.token);
             navigate('/dashboard');
         } catch (err: any) {
-            console.error("DÉTAILS COMPLETS DE L'ERREUR:", err.response);
-
-            const status = err.response?.status;
-            let errorMessage = 'Une erreur de connexion est survenue. Veuillez réessayer.';
-
-            if (status === 401 || status === 403) {
-                errorMessage = 'L\'adresse e-mail ou le mot de passe est incorrect.';
-            } else if (status === 404) {
-                errorMessage = 'Aucun compte n\'est associé à cette adresse e-mail.';
-            }
-
+            const errorMessage = err.response?.data?.message || 'Identifiants invalides.';
             setError(errorMessage);
         } finally {
             setLoading(false);
@@ -47,55 +37,40 @@ const LoginPage = () => {
     };
 
     return (
-        <Container component="main" maxWidth="xs" className="login-page-container">
-            <Box className="login-box">
-                <Box className="login-header">
-                    <Typography component="h1" variant="h4" color="primary">
-                        Connexion
-                    </Typography>
-                    <Typography>
-                        Bon retour parmi nous !
-                    </Typography>
-                </Box>
-                <Box component="form" onSubmit={handleSubmit} noValidate className="login-form">
-                    {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <Box className="login-page-container">
+            <Box className="login-card">
 
-                    {}
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        label="Adresse e-mail"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        InputProps={{
-                            startAdornment: (<InputAdornment position="start"><MailOutlineIcon color="secondary" /></InputAdornment>)
-                        }}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        label="Mot de passe"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        InputProps={{
-                            startAdornment: (<InputAdornment position="start"><LockOutlinedIcon color="secondary" /></InputAdornment>)
-                        }}
-                    />
-                    <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        disabled={loading}
-                        className="submit-button"
-                    >
-                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter'}
-                    </Button>
+                {/* On utilise votre image personnalisée ici, à la place du SVG */}
+                <img src={BackgroundShapes} alt="Formes abstraites de fond" className="background-shapes-image" />
+
+                {/* Conteneur pour le formulaire (partie gauche) */}
+                <Box className="login-form-container">
+                    <Typography variant="h3" className="login-title">SE CONNECTER</Typography>
+                    <Typography className="login-subtitle">Entrez vos informations de connexion</Typography>
+
+                    <Box component="form" onSubmit={handleSubmit} className="login-form">
+                        <TextField
+                            required variant="standard" label="ADRESSE E-MAIL*" fullWidth
+                            value={email} onChange={(e) => setEmail(e.target.value)}
+                        />
+                        <TextField
+                            required variant="standard" label="MOT DE PASSE*" type="password" fullWidth
+                            value={password} onChange={(e) => setPassword(e.target.value)}
+                        />
+                        {error && <Typography className="error-message">{error}</Typography>}
+                        <Button type="submit" variant="contained" disabled={loading} className="submit-button">
+                            {loading ? <CircularProgress size={24} /> : 'SE CONNECTER'}
+                        </Button>
+                    </Box>
+                </Box>
+
+                {/* Conteneur pour l'illustration de l'arbre (partie droite) */}
+                <Box className="login-illustration-container">
+                    <img src={CommitTree} alt="Illustration d'un arbre de commits" />
                 </Box>
             </Box>
-        </Container>
+        </Box>
     );
 };
+
 export default LoginPage;
