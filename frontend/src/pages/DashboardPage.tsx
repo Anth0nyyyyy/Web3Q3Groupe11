@@ -53,6 +53,8 @@ const DashboardPage = () => {
                     case 'creation-asc':
                         return a._id.localeCompare(b._id);
                     case 'deadline-asc':
+                        if (!a.projectEndDate) return 1;
+                        if (!b.projectEndDate) return -1;
                         return new Date(a.projectEndDate).getTime() - new Date(b.projectEndDate).getTime();
                     case 'name-asc':
                         return a.name.localeCompare(b.name);
