@@ -26,12 +26,12 @@ app.use('/api/github', githubRoutes);
 
 // Route de test simple pour vérifier que le serveur fonctionne
 app.get('/', (req, res) => {
-    res.send('🎉 Le serveur du projet Web 3 HELHa fonctionne !');
+    res.send(' Le serveur du projet Web 3 HELHa fonctionne !');
 });
 
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 
 app.listen(PORT, () => {
-    console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
+    console.log(` Serveur démarré sur http://localhost:${PORT}`);
 });
