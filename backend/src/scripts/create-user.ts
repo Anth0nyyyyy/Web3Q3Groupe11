@@ -18,7 +18,7 @@ const createUser = async () => {
 
     const mongoUri = process.env.MONGO_URI;
     if (!mongoUri) {
-        console.error('Erreur: MONGO_URI n\'est pas défini dans le .env');
+        console.error('Erreur: MONGO_URI n\'est pas défini dans le ..env');
         process.exit(1);
     }
 

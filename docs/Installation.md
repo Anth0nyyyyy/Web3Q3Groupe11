@@ -55,7 +55,7 @@ copy .env.example .env
 * Sur **macOS / Linux** :
 
 ```bash
-cp .env.example .env
+cp ..env.example ..env
 ```
 
 3. Ouvrez le nouveau fichier .env et remplissez les variables :
