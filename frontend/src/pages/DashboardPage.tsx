@@ -3,29 +3,37 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
-    Box, Typography, Card, CardContent, CardActions, Button, CircularProgress, IconButton,
-    Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-    Snackbar, Alert, TextField, Stack, FormControl, InputLabel, Select, MenuItem
+    Box, Typography, Button, CircularProgress, TextField, FormControl, Select, MenuItem,
+    Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar, Alert, IconButton
 } from '@mui/material';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import DeleteIcon from '@mui/icons-material/Delete'; // <-- CORRECTION : On importe l'icône
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CreateProjectModal from '../components/CreateProjectModal.tsx';
 import type { IProject } from '../types/index.ts';
+
+import './DashboardPage.scss';
+
+const getProjectThumbnail = (projectId: string) => {
+    let hash = 0;
+    for (let i = 0; i < projectId.length; i++) {
+        hash = projectId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const imageId = Math.abs(hash % 1000);
+    return `https://picsum.photos/id/${imageId}/120/120`;
+};
 
 const DashboardPage = () => {
     const [projects, setProjects] = useState<IProject[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('creation-desc');
 
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [projectToDelete, setProjectToDelete] = useState<IProject | null>(null);
     const [snackbar, setSnackbar] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
-
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState('creation-desc');
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -58,16 +66,17 @@ const DashboardPage = () => {
                         return new Date(a.projectEndDate).getTime() - new Date(b.projectEndDate).getTime();
                     case 'name-asc':
                         return a.name.localeCompare(b.name);
+                    case 'name-desc':
+                        return b.name.localeCompare(a.name);
                     default:
                         return 0;
                 }
             });
     }, [projects, searchTerm, sortBy]);
 
-    const getShareableUrl = (project: IProject) => `${window.location.origin}/join/${project._id}/${project.accessKey}`;
-
     const handleProjectCreated = (newProject: IProject) => {
         setProjects(prevProjects => [newProject, ...prevProjects]);
+        setSnackbar({ open: true, message: 'Projet créé avec succès !' });
     };
 
     const openDeleteConfirm = (e: React.MouseEvent, project: IProject) => {
@@ -92,105 +101,89 @@ const DashboardPage = () => {
         }
     };
 
-    const handleCopyClick = (e: React.MouseEvent, project: IProject) => {
-        e.preventDefault();
-        e.stopPropagation();
-        navigator.clipboard.writeText(getShareableUrl(project));
-        setSnackbar({ open: true, message: 'Lien de partage copié !' });
-    };
-
     const handleCloseSnackbar = () => {
         setSnackbar({ ...snackbar, open: false });
     };
 
     return (
-        <DashboardLayout title="Projets">
+        <DashboardLayout title="">
             {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress color="inherit" /></Box>
             ) : (
-                <Box>
-                    {projects.length > 0 && (
-                        <Stack spacing={2} sx={{ mb: 3 }}>
-                            <TextField
-                                fullWidth
-                                label="Rechercher un projet..."
-                                variant="outlined"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <FormControl sx={{ minWidth: 220 }}>
-                                <InputLabel>Trier par</InputLabel>
+                <Box className="dashboard-container">
+                    {/* On utilise un conteneur principal en colonne */}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+
+                        {/* Conteneur pour la barre de recherche */}
+                        <TextField
+                            fullWidth
+                            label="RECHERCHER UN PROJET ..."
+                            variant="standard"
+                            className="search-input"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+
+                        {/* Conteneur pour le bouton de tri, aligné à gauche */}
+                        <Box>
+                            <FormControl className="sort-button">
                                 <Select
                                     value={sortBy}
-                                    label="Trier par"
-                                    // LA SOLUTION SÛRE : On dit à TypeScript que la valeur est une 'string'
                                     onChange={(e) => setSortBy(e.target.value as string)}
+                                    variant="standard"
+                                    disableUnderline
                                 >
-                                    <MenuItem value="creation-desc">Les plus récents d'abord</MenuItem>
-                                    <MenuItem value="creation-asc">Les plus anciens d'abord</MenuItem>
-                                    <MenuItem value="deadline-asc">Échéance la plus proche</MenuItem>
-                                    <MenuItem value="name-asc">Ordre alphabétique (A-Z)</MenuItem>
-                                    <MenuItem value="name-desc">Ordre alphabétique (Z-A)</MenuItem>
+                                    <MenuItem value="creation-desc">Trier</MenuItem>
+                                    <MenuItem value="creation-asc">Les plus anciens</MenuItem>
+                                    <MenuItem value="deadline-asc">Échéance</MenuItem>
+                                    <MenuItem value="name-asc">Nom (A-Z)</MenuItem>
+                                    <MenuItem value="name-desc">Nom (Z-A)</MenuItem>
                                 </Select>
                             </FormControl>
-                        </Stack>
-                    )}
+                        </Box>
+                    </Box>
 
-                    {displayedProjects.length === 0 ? (
-                        <Box sx={{ textAlign: 'center', py: 5 }}>
-                            <AddCircleOutlineIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
-                            <Typography variant="h6" sx={{ mb: 1 }}>
-                                {searchTerm ? 'Aucun projet ne correspond à votre recherche' : 'Vous n\'avez pas encore de projet'}
-                            </Typography>
-                            <Typography color="text.secondary">
-                                {searchTerm ? 'Essayez avec un autre mot-clé.' : 'Cliquez sur le bouton ci-dessous pour commencer.'}
-                            </Typography>
-                        </Box>
-                    ) : (
-                        <Box className="projects-list">
-                            {displayedProjects.map((project) => (
-                                <RouterLink to={`/project/${project._id}`} key={project._id} className="project-card-link">
-                                    <Card className="project-card">
-                                        <IconButton
-                                            aria-label="supprimer projet"
-                                            size="small"
-                                            onClick={(e) => openDeleteConfirm(e, project)}
-                                            className="delete-button" color="error"
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                        <CardContent>
-                                            <Typography className="project-name">{project.name}</Typography>
-                                        </CardContent>
-                                        <CardActions className="card-actions">
-                                            <Typography variant="caption">URL de partage :</Typography>
-                                            <Button size="small" startIcon={<ContentCopyIcon />} onClick={(e) => handleCopyClick(e, project)}>
-                                                Copier
-                                            </Button>
-                                        </CardActions>
-                                    </Card>
-                                </RouterLink>
-                            ))}
-                        </Box>
+                    <Box>
+                        {displayedProjects.slice(0, 3).map((project) => (
+                            <RouterLink to={`/project/${project._id}`} key={project._id} className="project-list-item">
+                                {/* CORRECTION : On appelle bien getProjectThumbnail */}
+                                <img
+                                    src={getProjectThumbnail(project._id)}
+                                    alt="thumbnail de projet aléatoire"
+                                    className="project-thumbnail"
+                                />
+                                <Box className="project-info">
+                                    <Typography className="project-name">{project.name}</Typography>
+                                    {/* CORRECTION : L'accès à 'groups' est maintenant sûr */}
+                                    <Typography className="group-count">{project.groups?.length || 0} Groupes</Typography>
+                                </Box>
+
+                                {/* CORRECTION : On ajoute le bouton supprimer */}
+                                <IconButton
+                                    edge="end"
+                                    onClick={(e) => openDeleteConfirm(e, project)}
+                                    sx={{ ml: 1, color: '#aaa', '&:hover': { color: '#d32f2f', backgroundColor: 'transparent' } }}
+                                >
+                                    <DeleteIcon />
+                                </IconButton>
+
+                                <ArrowForwardIosIcon className="arrow-icon" />
+                            </RouterLink>
+                        ))}
+                    </Box>
+
+                    {displayedProjects.length > 3 && (
+                        <Button className="see-more-button">Voir plus ....</Button>
                     )}
-                    <Button
-                        fullWidth
-                        variant="contained"
-                        color="primary"
-                        sx={{ mt: 4 }}
-                        onClick={() => setIsCreateModalOpen(true)}
-                    >
-                        Créer un nouveau projet
-                    </Button>
                 </Box>
             )}
 
+            {/* Le reste est correct */}
             <CreateProjectModal
                 open={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onProjectCreated={handleProjectCreated}
             />
-
             <Dialog open={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)}>
                 <DialogTitle>Confirmer la suppression</DialogTitle>
                 <DialogContent>
@@ -203,7 +196,6 @@ const DashboardPage = () => {
                     <Button onClick={handleDeleteProject} color="error" autoFocus>Supprimer</Button>
                 </DialogActions>
             </Dialog>
-
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000}

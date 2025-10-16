@@ -1,11 +1,12 @@
 // /frontend/src/components/DashboardLayout.tsx
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, AppBar, Toolbar, IconButton, Typography } from '@mui/material';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import BottomNav from './BottomNav.tsx';
+import DesignDashboard from '../assets/DesignDashboard.png'; // <-- On importe l'image de fond
 
-// On définit le type des props pour que le Layout puisse accepter des enfants
 type DashboardLayoutProps = {
     children: React.ReactNode;
     title: string;
@@ -14,40 +15,42 @@ type DashboardLayoutProps = {
 const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
     const navigate = useNavigate();
     return (
-        // Style de fond spécifique au Dashboard
-        <Box sx={{ backgroundColor: '#f7faf9', minHeight: '100vh', pb: '80px' }}>
+        // Le conteneur principal a maintenant l'image de fond
+        <Box sx={{
+            minHeight: '100vh',
+            pb: '80px', // Espace pour la BottomNav
+            backgroundImage: `url(${DesignDashboard})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed', // Le fond reste fixe au défilement
+        }}>
 
-            {/* HEADER */}
+            {/* HEADER - On le rend transparent */}
             <AppBar
                 position="sticky"
-                sx={{
-                    background: 'rgba(247, 250, 249, 0.8)',
-                    backdropFilter: 'blur(4px)',
-                    boxShadow: 'none',
-                    borderBottom: '1px solid #e0e0e0'
-                }}
+                elevation={0} // On enlève toute ombre
+                sx={{ background: 'transparent' }}
             >
                 <Toolbar>
-                    <IconButton edge="start" sx={{ color: 'text.secondary' }} onClick={() => navigate(-1)}>
+                    <IconButton edge="start" sx={{ color: 'white' }} onClick={() => navigate(-1)}>
                         <ArrowBackIosNewIcon />
                     </IconButton>
-                    <Typography variant="h6" sx={{ flexGrow: 1, textAlign: 'center', color: 'text.primary', fontWeight: 'bold' }}>
+                    <Typography variant="h6" sx={{ flexGrow: 1, textAlign: 'center', color: 'white', fontWeight: 'bold' }}>
                         {title}
                     </Typography>
-                    <Box sx={{ width: 40 }} /> {/* Espace pour centrer le titre */}
+                    <Box sx={{ width: 40 }} />
                 </Toolbar>
             </AppBar>
 
             {/* CONTENU PRINCIPAL */}
             <Box component="main" sx={{ p: 2 }}>
-                {children} {/* C'est ici que le contenu de la page sera injecté */}
+                {children}
             </Box>
 
-            {/* NAVIGATION DU BAS */}
+            {/* NAVIGATION DU BAS - Elle reste identique */}
             <BottomNav />
         </Box>
     );
 };
 
-// LA LIGNE MANQUANTE : Il faut exporter le composant pour pouvoir l'utiliser ailleurs
 export default DashboardLayout;

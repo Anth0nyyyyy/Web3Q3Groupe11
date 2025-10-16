@@ -29,4 +29,5 @@ export interface IProject {
     accessKey: string;
     enrollmentEndDate?: Date;
     projectEndDate?: Date;
+    groups?: any[];
 }
