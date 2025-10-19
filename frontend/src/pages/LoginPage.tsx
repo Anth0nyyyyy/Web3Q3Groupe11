@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 // On importe les deux illustrations depuis le dossier assets
 import CommitTree from '../assets/CommitTree.png';
 import BackgroundShapes from '../assets/BackgroundShapes.png'; // <-- VOTRE IMAGE PERSONNALISÉE
-import './LoginPage.scss';
+import '../styles/LoginPage.scss';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');

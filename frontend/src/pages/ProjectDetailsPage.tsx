@@ -9,7 +9,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
 import type { IProject, IGroup, ITeamMember } from '@shared/types';
-import './ProjectDetailsPage.scss';
+import '../styles/ProjectDetailsPage.scss';
 
 // On utilise cette interface pour gérer l'état de la page
 interface ProjectDetailsData {

@@ -13,7 +13,7 @@ import { projectService } from '../services/projectService.ts';
 import CreateProjectModal from '../components/CreateProjectModal.tsx';
 import type { IProject } from '@shared/types/index.ts';
 
-import './DashboardPage.scss';
+import '../styles/DashBoardPage.scss';
 
 const getProjectThumbnail = (projectId: string) => {
     let hash = 0;
