@@ -1,5 +1,5 @@
     import mongoose from 'mongoose';
-import 'dotenv/config'; // Permet de charger les variables de ..env
+import 'dotenv/config'; // Permet de charger les variables de .env
 
 const connectDB = async () => {
     const mongoUri = process.env.MONGO_URI;

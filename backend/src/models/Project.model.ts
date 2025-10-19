@@ -1,24 +1,8 @@
 // /backend/src/models/Project.model.ts
 import { Schema, model, Document } from 'mongoose';
 import crypto from 'crypto';
-import type { IUser } from './User.model.js';
+import type { IUser, IProject } from '@shared/types/index.ts';
 
-// 1. Définir l'Interface qui représente un document Projet
-export interface IProject extends Document {
-    name: string;
-    githubOrg: string;
-    minMembers: number;
-    maxMembers: number;
-    repoPattern: string;
-    accessKey: string;
-    enrollmentEndDate?: Date;
-    projectEndDate?: Date;
-
-    // --- CORRECTION : On autorise 'string' comme type valide pour 'owner' ---
-    owner: Schema.Types.ObjectId | IUser | string;
-
-    instructionsContent?: string;
-}
 
 // 2. Créer le Schéma correspondant à l'Interface
 const projectSchema = new Schema<IProject>({

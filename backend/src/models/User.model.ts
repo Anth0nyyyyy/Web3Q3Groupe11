@@ -1,13 +1,11 @@
 // /backend/src/models/User.model.ts
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-export interface IUser extends Document {
-    email: string;
-    password?: string;
-    githubToken?: string;
-}
+// 1. On importe l'interface depuis notre dossier partagé
+import type { IUser } from '@shared/types/index.ts';
 
+// 2. On crée le schéma en le liant à l'interface importée
 const userSchema = new Schema<IUser>({
     email: {
         type: String,
@@ -27,27 +25,27 @@ const userSchema = new Schema<IUser>({
     timestamps: true,
 });
 
+// 3. On attache le middleware de hachage du mot de passe
 userSchema.pre('save', async function(next) {
-    // 'this' fait référence au document User en cours de sauvegarde
-    const user = this as IUser;
-
-    if (!user.isModified('password') || !user.password) {
+    // Dans ce contexte, 'this' est un document Mongoose complet qui a la méthode 'isModified'.
+    if (!this.isModified('password') || !this.password) {
         return next();
     }
 
     try {
         const salt = await bcrypt.genSalt(10);
-        // À ce stade, TypeScript est sûr que user.password est une string
-        user.password = await bcrypt.hash(user.password, salt);
+        this.password = await bcrypt.hash(this.password, salt);
         next();
     } catch (error) {
-        // Si le hachage échoue, on passe l'erreur à Mongoose
         if (error instanceof Error) {
-            next(error);
+            return next(error);
         }
+        // Gérer le cas où l'erreur n'est pas une instance de Error
+        return next(new Error('Erreur de hachage de mot de passe'));
     }
 });
 
+// 4. On crée et on exporte le modèle, toujours en le liant à l'interface
 const User = model<IUser>('User', userSchema);
 
 export default User;

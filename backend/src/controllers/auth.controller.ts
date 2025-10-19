@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.model.js';
-import type { IUser } from '../models/User.model.js';
+import type { IUser } from '@shared/types/index.ts';
 
 /**
  * @desc    Inscrire un nouvel utilisateur (professeur)

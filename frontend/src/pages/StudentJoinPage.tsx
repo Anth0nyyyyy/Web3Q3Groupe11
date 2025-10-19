@@ -8,7 +8,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-import type { TeamMember, IProject } from '../types/index.ts';
+import type { ITeamMember, IProject } from '@shared/types/index.ts';
 import { projectService } from '../services/projectService.ts';
 
 const StudentJoinPage = () => {
@@ -18,8 +18,8 @@ const StudentJoinPage = () => {
     const [pageLoading, setPageLoading] = useState(true);
     const [pageError, setPageError] = useState('');
 
-    const [members, setMembers] = useState<TeamMember[]>([]);
-    const [newMember, setNewMember] = useState<TeamMember>({
+    const [members, setMembers] = useState<ITeamMember[]>([]);
+    const [newMember, setNewMember] = useState<ITeamMember>({
         lastName: '', firstName: '', githubUsername: '', matricule: ''
     });
 

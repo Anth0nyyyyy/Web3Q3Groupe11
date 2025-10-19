@@ -11,7 +11,7 @@ import DeleteIcon from '@mui/icons-material/Delete'; // <-- CORRECTION : On impo
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
 import CreateProjectModal from '../components/CreateProjectModal.tsx';
-import type { IProject } from '../types/index.ts';
+import type { IProject } from '@shared/types/index.ts';
 
 import './DashboardPage.scss';
 
@@ -175,6 +175,15 @@ const DashboardPage = () => {
                     {displayedProjects.length > 3 && (
                         <Button className="see-more-button">Voir plus ....</Button>
                     )}
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        className="create-project-button" // On peut lui donner une classe pour le styler
+                        sx={{ mt: 4, py: 1.5, fontSize: '1.1rem', borderRadius: '50px' }} // On peut aussi le styler ici
+                        onClick={() => setIsCreateModalOpen(true)}
+                    >
+                        Créer un nouveau projet
+                    </Button>
                 </Box>
             )}
 

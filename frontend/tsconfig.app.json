@@ -7,6 +7,10 @@
     "module": "ESNext",
     "types": ["vite/client", "cypress"],
     "skipLibCheck": true,
+    "baseUrl": ".", // Indique que les chemins partent de la racine du projet backend
+    "paths": {
+      "@shared/*": ["../shared/src/*"] // On remonte d'un niveau pour trouver 'shared'
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",

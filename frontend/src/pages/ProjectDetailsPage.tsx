@@ -8,7 +8,7 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
-import type { IProject, IGroup, TeamMember } from '../types/index.ts';
+import type { IProject, IGroup, ITeamMember } from '@shared/types';
 import './ProjectDetailsPage.scss';
 
 // On utilise cette interface pour gérer l'état de la page
@@ -127,7 +127,7 @@ const ProjectDetailsPage = () => {
                             <IconButton size="small" sx={{ color: 'primary.main' }}><EditIcon /></IconButton>
                         </Box>
                         <Box className="members-list">
-                            {group.members.map((member: TeamMember) => (
+                            {group.members.map((member: ITeamMember) => (
                                 <Typography key={member.matricule}>
                                     {member.firstName} {member.lastName} <Typography component="span" variant="caption" className="member-pseudo">({member.githubUsername})</Typography>
                                 </Typography>

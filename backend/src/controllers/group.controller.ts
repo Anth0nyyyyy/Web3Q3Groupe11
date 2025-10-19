@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import { createGithubTeamAndRepo } from '../services/github.service.js';
 import Project from '../models/Project.model.js';
 import Group from '../models/Group.model.js';
-import type { IProject } from '../models/Project.model.js';
+import type { IProject } from '@shared/types/index.ts';
 
 export const createGroup = async (req: Request, res: Response) => {
     try {

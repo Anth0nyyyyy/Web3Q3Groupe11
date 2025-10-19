@@ -1,37 +1,27 @@
 // /backend/src/models/Group.model.ts
-import { Schema, model, Document } from 'mongoose';
-import type { IProject } from './Project.model.js';
+import { Schema, model } from 'mongoose';
 
-// On définit une interface pour un membre, qui correspond à celle du frontend
-interface ITeamMember {
-    lastName: string;
-    firstName: string;
-    githubUsername: string;
-    matricule: string;
-}
+// CORRECTION : On importe tous nos types depuis le dossier partagé
+import type { IGroup, ITeamMember } from '@shared/types/index.ts';
 
-// L'interface pour notre document Group
-export interface IGroup extends Document {
-    name: string;
-    project: IProject['_id'];
-    members: ITeamMember[];
-    repoUrl?: string; // L'URL du dépôt GitHub, une fois créé
-}
 
-// Un sous-schéma pour les membres
+// Un sous-schéma pour les membres. Il est lié à l'interface importée.
 const memberSchema = new Schema<ITeamMember>({
     lastName: { type: String, required: true },
     firstName: { type: String, required: true },
     githubUsername: { type: String, required: true },
     matricule: { type: String, required: true },
-}, { _id: false }); // Pas besoin d'un ID unique pour chaque membre
+}, { _id: false });
 
+// Le schéma principal, lié à l'interface IGroup importée.
 const groupSchema = new Schema<IGroup>({
     name: { type: String, required: true },
     project: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
-    members: [memberSchema], // Un tableau de membres
+    members: [memberSchema],
     repoUrl: { type: String },
 }, { timestamps: true });
 
+// Le modèle est lié à l'interface IGroup.
 const Group = model<IGroup>('Group', groupSchema);
+
 export default Group;
