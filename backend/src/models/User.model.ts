@@ -21,6 +21,9 @@ const userSchema = new Schema<IUser>({
         select: false,
     },
     githubToken: { type: String, select: false },
+    firstName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
+    avatarUrl: { type: String },
 }, {
     timestamps: true,
 });

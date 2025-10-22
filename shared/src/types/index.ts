@@ -21,6 +21,9 @@ export interface IUser extends Document {
     email: string;
     password?: string;
     githubToken?: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
 }
 
 export interface IProject extends Document {
