@@ -154,10 +154,13 @@ const DashboardPage = () => {
                                 />
                                 <Box className="project-info">
                                     <Typography className="project-name">{project.name}</Typography>
-                                    {/* CORRECTION : L'accès à 'groups' est maintenant sûr */}
-                                    <Typography className="group-count">{project.groups?.length || 0} Groupes</Typography>
-                                </Box>
 
+                                    {/* --- CORRECTION : On utilise la nouvelle propriété 'groupCount' --- */}
+
+                                    <Typography className="group-count">
+                                        {/* On utilise 0 comme valeur par défaut si groupCount n'est pas défini */}
+                                        {project.groupCount || 0} {project.groupCount === 1 ? 'Groupe' : 'Groupes'}
+                                    </Typography>                                </Box>
                                 {/* CORRECTION : On ajoute le bouton supprimer */}
                                 <IconButton
                                     edge="end"

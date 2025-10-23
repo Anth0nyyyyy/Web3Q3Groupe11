@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import Project from '../models/Project.model.js';
 import Group from '../models/Group.model.js';
 import User from '../models/User.model.js';
+import mongoose from 'mongoose';
 
 // CORRECTION : On importe les TYPES depuis le dossier partagé
 import type { IProject } from '@shared/types/index.ts';
@@ -49,14 +50,50 @@ export const getMyProjects = async (req: Request, res: Response) => {
         if (!req.user) {
             return res.status(401).json({ message: "Utilisateur non authentifié." });
         }
-        const projects = await Project.find({ owner: req.user.id }).sort({ createdAt: -1 });
-        res.status(200).json(projects);
+        const ownerId = new mongoose.Types.ObjectId(req.user.id);
+
+        const projectsWithGroupCount = await Project.aggregate([
+            // Étape 1 : Ne garder que les projets du bon professeur
+            { $match: { owner: ownerId } },
+
+            // Étape 2 : Faire une "jointure" avec la collection 'groups'
+            {
+                $lookup: {
+                    from: 'groups',
+                    localField: '_id',
+                    foreignField: 'project',
+                    as: 'groups'
+                }
+            },
+
+            // Étape 3 : Formater la sortie et créer le champ 'groupCount'
+            {
+                $project: {
+                    _id: 1, // Garder les champs dont on a besoin
+                    name: 1,
+                    githubOrg: 1,
+                    minMembers: 1,
+                    maxMembers: 1,
+                    repoPattern: 1,
+                    accessKey: 1,
+                    enrollmentEndDate: 1,
+                    projectEndDate: 1,
+                    createdAt: 1,
+                    groupCount: { $size: '$groups' } // Compter les éléments du tableau 'groups'
+                }
+            },
+
+            // Étape 4 : Trier le résultat final
+            { $sort: { createdAt: -1 } }
+        ]);
+
+        res.status(200).json(projectsWithGroupCount);
+
     } catch (error) {
         console.error("Erreur lors de la récupération des projets:", error);
-        res.status(500).json({ message: 'Erreur serveur.' });
+        res.status(500).json({ message: 'Erreur serveur lors de la récupération des projets.' });
     }
 };
-
 /**
  * @desc    Récupérer un projet par son ID, avec les groupes associés
  */

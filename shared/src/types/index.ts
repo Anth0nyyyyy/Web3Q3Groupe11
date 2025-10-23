@@ -38,7 +38,7 @@ export interface IProject extends Document {
     instructionsContent?: string;
     enrollmentEndDate?: Date;
     projectEndDate?: Date;
-    groups?: any[];
+    groupCount?: number;
 }
 
 export interface IGroup extends Document {
