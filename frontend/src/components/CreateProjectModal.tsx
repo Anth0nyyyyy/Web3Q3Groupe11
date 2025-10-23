@@ -98,6 +98,23 @@ const CreateProjectModal = ({ open, onClose, onProjectCreated }: CreateProjectMo
         onClose();
     };
 
+    // Fonctions de validation pour Min/Max membres
+    const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newMin = Math.max(1, Number(e.target.value));
+        setMinMembers(newMin);
+        if (newMin > maxMembers) {
+            setMaxMembers(newMin);
+        }
+    };
+
+    const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newMax = Math.max(1, Number(e.target.value));
+        setMaxMembers(newMax);
+        if (newMax < minMembers) {
+            setMinMembers(newMax);
+        }
+    };
+
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
             <DialogTitle sx={{ fontWeight: 'bold' }}>Créer un nouveau projet</DialogTitle>
@@ -124,8 +141,8 @@ const CreateProjectModal = ({ open, onClose, onProjectCreated }: CreateProjectMo
                 <TextField margin="dense" label="Date de fin d'inscription" type="date" fullWidth InputLabelProps={{ shrink: true }} value={enrollmentEndDate} onChange={(e) => setEnrollmentEndDate(e.target.value)} />
                 <TextField margin="dense" label="Date de fin du projet" type="date" fullWidth InputLabelProps={{ shrink: true }} value={projectEndDate} onChange={(e) => setProjectEndDate(e.target.value)} />
                 <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                    <TextField margin="dense" label="Membres Min." type="number" InputProps={{ inputProps: { min: 1 } }} fullWidth value={minMembers} onChange={(e) => setMinMembers(Number(e.target.value))} />
-                    <TextField margin="dense" label="Membres Max." type="number" InputProps={{ inputProps: { min: 1 } }} fullWidth value={maxMembers} onChange={(e) => setMaxMembers(Number(e.target.value))} />
+                    <TextField margin="dense" label="Membres Min." type="number" InputProps={{ inputProps: { min: 1 } }} fullWidth value={minMembers} onChange={handleMinChange} />
+                    <TextField margin="dense" label="Membres Max." type="number" InputProps={{ inputProps: { min: 1 } }} fullWidth value={maxMembers} onChange={handleMaxChange} />
                 </Box>
                 <Button variant="outlined" component="label" fullWidth sx={{ mt: 2 }}>
                     Joindre un fichier de consignes (.md, .txt)
