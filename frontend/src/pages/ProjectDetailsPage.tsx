@@ -1,7 +1,7 @@
 // /frontend/src/pages/ProjectDetailsPage.tsx
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, Paper, Grid, Button, IconButton, CircularProgress, Alert, TextField } from '@mui/material';
+import { Box, Typography, Paper, Grid, Button, IconButton, CircularProgress, Alert, TextField, } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
@@ -11,16 +11,22 @@ import { projectService } from '../services/projectService.ts';
 import type { IProject, IGroup, ITeamMember } from '@shared/types';
 import '../styles/ProjectDetailsPage.scss';
 
-// On utilise cette interface pour gérer l'état de la page
+// Interface pour les données combinées de la page
 interface ProjectDetailsData {
     project: IProject;
     groups: IGroup[];
 }
 
+// Fonction utilitaire pour formater une date pour un champ <input type="date">
+const formatDateForInput = (date?: Date): string => {
+    if (!date) return '';
+    // new Date() gère à la fois les objets Date et les chaînes de date ISO
+    return new Date(date).toISOString().split('T')[0];
+};
+
 const ProjectDetailsPage = () => {
     const { id } = useParams<{ id: string }>();
 
-    // On utilise un seul état pour toutes les données de la page
     const [data, setData] = useState<ProjectDetailsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -51,8 +57,8 @@ const ProjectDetailsPage = () => {
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
-        const parsedValue = name === 'minMembers' || name === 'maxMembers' ? parseInt(value, 10) : value;
-        setEditData(prev => ({ ...prev, [name]: parsedValue }));
+        const isNumeric = ['minMembers', 'maxMembers'].includes(name);
+        setEditData(prev => ({ ...prev, [name]: isNumeric ? (value === '' ? '' : parseInt(value, 10)) : value }));
     };
 
     const handleSave = async () => {
@@ -96,14 +102,21 @@ const ProjectDetailsPage = () => {
                         <Grid container spacing={2}>
                             <Grid item xs={12}><TextField name="name" label="Nom du projet" value={editData.name || ''} onChange={handleInputChange} fullWidth size="small" /></Grid>
                             <Grid item xs={12}><TextField name="githubOrg" label="Organisation GitHub" value={editData.githubOrg || ''} onChange={handleInputChange} fullWidth size="small" /></Grid>
-                            <Grid item xs={6}><TextField name="minMembers" label="Membres Min." type="number" value={editData.minMembers || 1} onChange={handleInputChange} fullWidth size="small" /></Grid>
-                            <Grid item xs={6}><TextField name="maxMembers" label="Membres Max." type="number" value={editData.maxMembers || 1} onChange={handleInputChange} fullWidth size="small" /></Grid>
+                            <Grid item xs={6}><TextField name="minMembers" label="Membres Min." type="number" value={editData.minMembers || ''} onChange={handleInputChange} fullWidth size="small" /></Grid>
+                            <Grid item xs={6}><TextField name="maxMembers" label="Membres Max." type="number" value={editData.maxMembers || ''} onChange={handleInputChange} fullWidth size="small" /></Grid>
                             <Grid item xs={12}><TextField name="repoPattern" label="Pattern du nom" value={editData.repoPattern || ''} onChange={handleInputChange} fullWidth size="small" /></Grid>
+                            <Grid item xs={6}><TextField name="enrollmentEndDate" label="Date fin inscriptions" type="date" value={formatDateForInput(editData.enrollmentEndDate)} onChange={handleInputChange} fullWidth size="small" InputLabelProps={{ shrink: true }} /></Grid>
+                            <Grid item xs={6}><TextField name="projectEndDate" label="Date fin projet" type="date" value={formatDateForInput(editData.projectEndDate)} onChange={handleInputChange} fullWidth size="small" InputLabelProps={{ shrink: true }} /></Grid>
                         </Grid>
                     ) : (
                         <Grid container spacing={2} className="info-grid">
                             <Grid item xs={6} className="info-item"><Typography variant="body2" className="info-label">Nom du projet</Typography><Typography>{project.name}</Typography></Grid>
-                            <Grid item xs={6} className="info-item"><Typography variant="body2" className="info-label">Date de fin</Typography><Box className="info-value-container"><EventBusyIcon color="error" /><Typography>15/08/2025</Typography></Box></Grid>
+                            <Grid item xs={6} className="info-item">
+                                <Typography variant="body2" className="info-label">Date de fin</Typography>
+                                {project.projectEndDate ? (
+                                    <Box className="info-value-container"><EventBusyIcon color="error" /><Typography>{new Date(project.projectEndDate).toLocaleDateString('fr-FR')}</Typography></Box>
+                                ) : ( <Typography color="text.secondary">Non définie</Typography> )}
+                            </Grid>
                             <Grid item xs={6} className="info-item"><Typography variant="body2" className="info-label">Organisation GitHub</Typography><Typography>{project.githubOrg}</Typography></Grid>
                             <Grid item xs={6} className="info-item"><Typography variant="body2" className="info-label">Étudiants max / groupe</Typography><Typography>{project.maxMembers}</Typography></Grid>
                             <Grid item xs={12} className="info-item"><Typography variant="body2" className="info-label">Pattern nom de groupe</Typography><Typography>{project.repoPattern}</Typography></Grid>

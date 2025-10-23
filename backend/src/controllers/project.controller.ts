@@ -1,13 +1,9 @@
 // /backend/src/controllers/project.controller.ts
 import type { Request, Response } from 'express';
-
-// CORRECTION : On importe les VALEURS (Modèles) depuis leurs fichiers locaux
+import mongoose from 'mongoose';
 import Project from '../models/Project.model.js';
 import Group from '../models/Group.model.js';
 import User from '../models/User.model.js';
-import mongoose from 'mongoose';
-
-// CORRECTION : On importe les TYPES depuis le dossier partagé
 import type { IProject } from '@shared/types/index.ts';
 import { deleteGithubTeamAndRepo } from '../services/github.service.js';
 
@@ -16,16 +12,14 @@ import { deleteGithubTeamAndRepo } from '../services/github.service.js';
  */
 export const createProject = async (req: Request, res: Response) => {
     try {
-        const { name, githubOrg, minMembers, maxMembers, repoPattern } = req.body;
-
-        // CORRECTION : On vérifie que 'req.user' existe avant d'accéder à 'id'
+        const { name, githubOrg, minMembers, maxMembers, repoPattern, enrollmentEndDate, projectEndDate } = req.body;
         if (!req.user) {
             return res.status(401).json({ message: "Utilisateur non authentifié." });
         }
         const ownerId = req.user.id;
 
-        const newProjectData = {
-            name, githubOrg, minMembers, maxMembers, repoPattern, owner: ownerId
+        const newProjectData: Partial<IProject> = {
+            name, githubOrg, minMembers, maxMembers, repoPattern, owner: ownerId, enrollmentEndDate, projectEndDate
         };
 
         if (req.file) {
@@ -38,7 +32,7 @@ export const createProject = async (req: Request, res: Response) => {
         res.status(201).json(newProject);
     } catch (error) {
         console.error("Erreur lors de la création du projet:", error);
-        res.status(500).json({ message: 'Erreur serveur.' });
+        res.status(500).json({ message: 'Erreur serveur lors de la création du projet.' });
     }
 };
 
@@ -53,47 +47,25 @@ export const getMyProjects = async (req: Request, res: Response) => {
         const ownerId = new mongoose.Types.ObjectId(req.user.id);
 
         const projectsWithGroupCount = await Project.aggregate([
-            // Étape 1 : Ne garder que les projets du bon professeur
             { $match: { owner: ownerId } },
-
-            // Étape 2 : Faire une "jointure" avec la collection 'groups'
-            {
-                $lookup: {
-                    from: 'groups',
-                    localField: '_id',
-                    foreignField: 'project',
-                    as: 'groups'
-                }
-            },
-
-            // Étape 3 : Formater la sortie et créer le champ 'groupCount'
+            { $lookup: { from: 'groups', localField: '_id', foreignField: 'project', as: 'groups' } },
             {
                 $project: {
-                    _id: 1, // Garder les champs dont on a besoin
-                    name: 1,
-                    githubOrg: 1,
-                    minMembers: 1,
-                    maxMembers: 1,
-                    repoPattern: 1,
-                    accessKey: 1,
-                    enrollmentEndDate: 1,
-                    projectEndDate: 1,
-                    createdAt: 1,
-                    groupCount: { $size: '$groups' } // Compter les éléments du tableau 'groups'
+                    _id: 1, name: 1, githubOrg: 1, minMembers: 1, maxMembers: 1,
+                    repoPattern: 1, accessKey: 1, enrollmentEndDate: 1, projectEndDate: 1,
+                    createdAt: 1, groupCount: { $size: '$groups' }
                 }
             },
-
-            // Étape 4 : Trier le résultat final
             { $sort: { createdAt: -1 } }
         ]);
 
         res.status(200).json(projectsWithGroupCount);
-
     } catch (error) {
         console.error("Erreur lors de la récupération des projets:", error);
         res.status(500).json({ message: 'Erreur serveur lors de la récupération des projets.' });
     }
 };
+
 /**
  * @desc    Récupérer un projet par son ID, avec les groupes associés
  */
@@ -125,13 +97,26 @@ export const updateProject = async (req: Request, res: Response) => {
         if (!project) return res.status(404).json({ message: 'Projet non trouvé.' });
         if (project.owner.toString() !== req.user.id) return res.status(403).json({ message: 'Action non autorisée.' });
 
-        // On met à jour les champs
-        Object.assign(project, req.body);
+        // Mise à jour explicite des champs pour la sécurité et la gestion des types
+        project.name = req.body.name || project.name;
+        project.githubOrg = req.body.githubOrg || project.githubOrg;
+        project.minMembers = req.body.minMembers || project.minMembers;
+        project.maxMembers = req.body.maxMembers || project.maxMembers;
+        project.repoPattern = req.body.repoPattern || project.repoPattern;
+
+        // On gère spécifiquement la mise à jour des dates
+        if (req.body.enrollmentEndDate) {
+            project.enrollmentEndDate = new Date(req.body.enrollmentEndDate);
+        }
+        if (req.body.projectEndDate) {
+            project.projectEndDate = new Date(req.body.projectEndDate);
+        }
+
         const updatedProject = await project.save();
         res.json(updatedProject);
     } catch (error) {
         console.error("Erreur de mise à jour du projet:", error);
-        res.status(500).json({ message: 'Erreur serveur.' });
+        res.status(500).json({ message: 'Erreur serveur lors de la mise à jour.' });
     }
 };
 
