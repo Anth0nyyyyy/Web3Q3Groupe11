@@ -1,11 +1,13 @@
 // /frontend/src/services/projectService.ts
 import axios from 'axios';
-import type { IProject, TeamMember } from '../types/index.ts';
+import type { IProject, ITeamMember } from '@shared/types';
+// --- CONFIGURATION DYNAMIQUE (Développement ou Production) ---
 
-// --- CONFIGURATION ---
+// On récupère la variable d'environnement définie sur Vercel, avec un repli (fallback) sur localhost en développement
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
-const API_PROJECTS_URL = 'http://localhost:4000/api/projects';
-const API_GROUPS_URL = 'http://localhost:4000/api/groups';
+const API_PROJECTS_URL = `${API_BASE_URL}/projects`;
+const API_GROUPS_URL = `${API_BASE_URL}/groups`;
 
 // Fonction utilitaire pour récupérer le token
 const getToken = () => localStorage.getItem('user_token');
@@ -40,12 +42,13 @@ const createProject = async (formData: FormData) => {
 
 /**
  * Crée un groupe, une équipe et un dépôt GitHub pour un projet donné.
+ * (MISE À JOUR : On cible exactement la route "createGroup" du tableau blanc)
  * @param projectId - L'ID du projet.
  * @param accessKey - La clé secrète du projet.
  * @param members - La liste des membres de l'équipe.
  */
-const createGroupForProject = async (projectId: string, accessKey: string, members: TeamMember[]) => {
-    const url = `${API_GROUPS_URL}/create/${projectId}/${accessKey}`;
+const createGroupForProject = async (projectId: string, accessKey: string, members: ITeamMember[]) => {
+    const url = `${API_GROUPS_URL}/createGroup/${projectId}/${accessKey}`;
     const response = await axios.post(url, { members });
     return response.data;
 };
@@ -76,6 +79,10 @@ const deleteProject = async (projectId: string) => {
     const response = await axios.delete(`${API_PROJECTS_URL}/${projectId}`, config);
     return response.data;
 };
+
+/**
+ * Récupère de manière sécurisée les détails d'un projet pour l'inscription des étudiants.
+ */
 const getPublicProjectDetails = async (projectId: string, accessKey: string) => {
     const url = `${API_GROUPS_URL}/details/${projectId}/${accessKey}`;
     const response = await axios.get(url);

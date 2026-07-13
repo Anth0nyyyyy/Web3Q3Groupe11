@@ -7,7 +7,10 @@
   "scripts": {
     "test": "node --experimental-vm-modules -r dotenv/config node_modules/jest/bin/jest.js",
     "dev": "tsx watch src/server.ts",
-    "create-user": "tsx src/scripts/create-user.ts"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "create-user": "tsx src/scripts/create-user.ts",
+    "archive-expired": "tsx src/scripts/archive-expired.ts"
   },
   "keywords": [],
   "author": "",

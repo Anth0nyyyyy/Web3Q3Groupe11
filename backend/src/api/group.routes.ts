@@ -4,12 +4,14 @@ import { createGroup, getPublicProjectDetails } from '../controllers/group.contr
 import { validate } from '../middlewares/validate.middleware.js';
 import { createGroupSchema } from '../schemas/group.schema.js';
 
-
 const router = Router();
 
-
 console.log("INFO: Le routeur de groupe est chargé.");
-// C'est la route "magique" publique
+
+// Route publique pour afficher les informations de départ de l'étudiant
 router.get('/details/:projectId/:accessKey', getPublicProjectDetails);
-router.post('/create/:projectId/:accessKey', validate(createGroupSchema), createGroup);
+
+// NOUVEAU : Route officielle demandée sur le tableau blanc du professeur !
+router.post('/createGroup/:projectId/:accessKey', validate(createGroupSchema), createGroup);
+
 export default router;

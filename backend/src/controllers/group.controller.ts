@@ -5,9 +5,12 @@ import Project from '../models/Project.model.js';
 import Group from '../models/Group.model.js';
 import type { IProject } from '@shared/types/index.ts';
 
+/**
+ * @desc    Inscrire un groupe d'étudiants (Public)
+ * @route   POST /api/groups/createGroup/:projectId/:accessKey
+ */
 export const createGroup = async (req: Request, res: Response) => {
     try {
-        // Le middleware Zod a déjà validé que 'params' et 'body' ont la bonne forme.
         const { projectId, accessKey } = req.params;
         const { members } = req.body;
 
@@ -17,7 +20,14 @@ export const createGroup = async (req: Request, res: Response) => {
             return res.status(403).json({ message: 'Lien de projet invalide ou expiré.' });
         }
 
-        // --- NOUVELLE RÈGLE 1 : VALIDER LA TAILLE DE L'ÉQUIPE ---
+        // --- NOUVELLE RÈGLE : VALIDER LA DATE LIMITE D'INSCRIPTION ---
+        if (project.enrollmentEndDate && new Date() > new Date(project.enrollmentEndDate)) {
+            return res.status(400).json({
+                message: "La période d'inscription pour ce projet est clôturée (date limite dépassée)."
+            });
+        }
+
+        // --- RÈGLE EXISTANTE : VALIDER LA TAILLE DE L'ÉQUIPE ---
         if (members.length < project.minMembers || members.length > project.maxMembers) {
             return res.status(400).json({
                 message: `Le nombre de membres doit être compris entre ${project.minMembers} et ${project.maxMembers}.`
@@ -26,7 +36,7 @@ export const createGroup = async (req: Request, res: Response) => {
 
         const githubUsernames = members.map((member: any) => member.githubUsername);
 
-        // --- NOUVELLE RÈGLE 2 : VÉRIFIER SI UN MEMBRE EST DÉJÀ DANS UN GROUPE ---
+        // --- RÈGLE EXISTANTE : VÉRIFIER SI UN MEMBRE EST DÉJÀ DANS UN GROUPE ---
         const existingGroup = await Group.findOne({
             project: projectId,
             'members.githubUsername': { $in: githubUsernames }
@@ -37,7 +47,6 @@ export const createGroup = async (req: Request, res: Response) => {
         }
 
         // 3. Appeler le service GitHub
-        // CORRECTION : On dit à TypeScript "Je suis certain que projectId est une string ici" avec "!"
         const { repoUrl, groupName } = await createGithubTeamAndRepo(projectId!, githubUsernames);
 
         // 4. Sauvegarder le groupe dans notre base de données
@@ -58,18 +67,40 @@ export const createGroup = async (req: Request, res: Response) => {
         res.status(statusCode).json({ message: error.message || 'Erreur serveur.' });
     }
 };
+
+/**
+ * @desc    Récupérer les détails d'un projet pour le formulaire d'inscription (Public)
+ * @route   GET /api/groups/details/:projectId/:accessKey
+ */
 export const getPublicProjectDetails = async (req: Request, res: Response) => {
     console.log(`[${new Date().toISOString()}] REQUÊTE REÇUE sur /details`);
     try {
         const { projectId, accessKey } = req.params;
         console.log(` -> Recherche du projet avec ID: ${projectId}`);
-        const project = await Project.findById(projectId).select('-instructionsContent -owner -accessKey');
-        console.log(' -> Recherche terminée. Projet trouvé :', project ? 'Oui' : 'Non'); // Exclure les données sensibles
 
-        if (!project) { // On ne vérifie pas la clé ici, pour pouvoir afficher "Lien invalide"
-            return res.status(404).json({ message: 'Projet non trouvé.' });
+        // On récupère le projet
+        const project = await Project.findById(projectId);
+
+        // Sécurité : On valide l'accessKey en même temps. Si la clé est mauvaise, on dit "Lien invalide"
+        if (!project || project.accessKey !== accessKey) {
+            console.log(' -> Projet introuvable ou clé d\'accès invalide.');
+            return res.status(404).json({ message: 'Lien de projet invalide ou expiré.' });
         }
-        console.log(' -> Envoi de la réponse au client.');
-        res.json(project);
-    } catch (error) { res.status(500).json({ message: 'Erreur serveur.' }); }
+
+        console.log(' -> Envoi de la réponse sanitizée au client.');
+
+        // On renvoie un objet propre sans exposer l'owner, la clé secrète ou les consignes
+        res.json({
+            _id: project._id,
+            name: project.name,
+            githubOrg: project.githubOrg,
+            minMembers: project.minMembers,
+            maxMembers: project.maxMembers,
+            repoPattern: project.repoPattern,
+            enrollmentEndDate: project.enrollmentEndDate,
+            projectEndDate: project.projectEndDate
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur serveur.' });
+    }
 };
