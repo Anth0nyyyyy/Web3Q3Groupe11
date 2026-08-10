@@ -4,7 +4,9 @@ import axios from 'axios';
 // On importe notre interface partagée pour typer les données
 import type { IUser } from '@shared/types';
 
-const API_URL = 'http://localhost:4000/api/users';
+// --- CONFIGURATION DYNAMIQUE ---
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const API_URL = `${API_BASE_URL}/users`;
 
 // Fonction utilitaire pour récupérer le token JWT depuis le localStorage
 const getToken = () => localStorage.getItem('user_token');
