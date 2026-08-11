@@ -4,7 +4,7 @@ Application web développée dans le cadre du cours "Projet Web 3" de la HELHa (
 
 ## 🎥 Vidéo de Présentation (Session Q3)
 
-👉 **[CLIQUEZ ICI POUR VOIR LA VIDÉO DE PRÉSENTATION Q3](https://youtube.com/votre-lien-ici)** 👈
+ **[CLIQUEZ ICI POUR VOIR LA VIDÉO DE PRÉSENTATION Q3](https://youtube.com/votre-lien-ici)** 
 
 *Cette vidéo montre l'application en ligne en fonctionnement, détaille l'architecture du code, et met en évidence les améliorations apportées depuis la session Q1.*
 
