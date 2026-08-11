@@ -11,7 +11,7 @@ import DeleteIcon from '@mui/icons-material/Delete'; // <-- CORRECTION : On impo
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import { projectService } from '../services/projectService.ts';
 import CreateProjectModal from '../components/CreateProjectModal.tsx';
-import type { IProject } from '@shared/types/index.ts';
+import type { IProject } from '@shared/types';
 
 import '../styles/DashBoardPage.scss';
 

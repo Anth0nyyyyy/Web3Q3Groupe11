@@ -28,6 +28,6 @@ Application web développée dans le cadre du cours "Projet Web 3" de la HELHa (
 L'intégralité de la documentation technique exigée se trouve dans le dossier `/docs` à la racine du projet :
 
 1.  [Guide d'Installation et d'Utilisation](./docs/INSTALLATION.md)
-2.  [Documentation de l'API Backend](./docs/API.md)
-3.  [Gestion des Processus en Arrière-plan (Crontab)](./docs/PROCESSUS_ARRIERE_PLAN.md)
+2.  [Documentation de l'API Backend](docs/API.md)
+3.  [Gestion des Processus en Arrière-plan (Crontab)](docs/PROCESSUS_ARRIERE_PLAN.md)
 4.  [Rapport des Améliorations Q3](./AMELIORATIONS_Q3.md)

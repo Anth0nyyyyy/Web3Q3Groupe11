@@ -10,7 +10,7 @@
     "module": "nodenext",
     "target": "esnext",
     "types": ["jest", "node"], // For nodejs:
-    "baseUrl": ".", // Indique que les chemins partent de la racine du projet backend
+    "baseUrl": "./", // Indique que les chemins partent de la racine du projet backend
     "paths": {
       "@shared/*": ["../shared/src/*"] // On remonte d'un niveau pour trouver 'shared'
     },
@@ -42,7 +42,7 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
 
 }

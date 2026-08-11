@@ -1,6 +1,6 @@
 // /frontend/src/App.tsx
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './theme';
+import theme from './theme.ts';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import AppRouter from './routeurs/AppRouter.tsx';
 

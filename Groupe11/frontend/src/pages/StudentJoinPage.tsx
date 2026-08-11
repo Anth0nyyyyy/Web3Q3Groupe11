@@ -8,7 +8,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-import type { ITeamMember, IProject } from '@shared/types/index.ts';
+import type { ITeamMember, IProject } from '@shared/types';
 import { projectService } from '../services/projectService.ts';
 
 const StudentJoinPage = () => {
