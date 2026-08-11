@@ -1,0 +1,127 @@
+// /frontend/src/pages/DashboardPage.scss
+
+@import 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap';
+
+// === Le conteneur principal "glassmorphism" ===
+.dashboard-container {
+  background: rgba(231, 216, 196, 0.75);
+  backdrop-filter: blur(20px); // L'effet de flou
+  -webkit-backdrop-filter: blur(20px); // Pour Safari
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 2rem;
+  font-family: 'Montserrat', sans-serif;
+  max-width: 65%;
+  margin-right: auto;
+}
+
+// === Barre de recherche et Tri (Nouveau Style) ===
+.search-input {
+   padding-bottom: 0 !important;
+
+  .MuiInputLabel-root {
+    color: rgb(70, 87, 57) !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 1px !important;
+
+    &.Mui-focused {
+      display: none; // On cache le label quand on clique dans le champ
+    }
+  }
+
+  // On cible la ligne du bas
+  .MuiInput-underline:before {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2) !important;
+  }
+  .MuiInput-underline:after {
+    border-bottom: 2px solid #EAE1D9 !important;
+  }
+
+  // On cible le texte que l'utilisateur tape
+  .MuiInputBase-input {
+    color: #1e1d1d !important;
+  }
+}
+
+.sort-button {
+  background-color: #899065 !important;
+  color: white !important;
+  border-radius: 15px !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  padding: 3px 16px !important;
+  width: fit-content;
+  box-shadow: none !important;
+  margin-top: -25px !important;
+
+  .MuiSelect-select {
+    padding-right: 27px !important;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    color: white !important;
+
+  }
+
+  .MuiSelect-icon {
+    color: white !important;
+    font-size: 1.5rem !important; // On agrandit un peu la flèche
+  }
+}
+
+// === Liste des projets ===
+.project-list-item {
+  display: flex !important;
+  align-items: center !important;
+  background-color: #fffdfd !important;
+  border-radius: 15px !important;
+  margin-bottom: 1rem !important;
+  padding: 1rem !important;
+  color: #282626;
+  text-decoration: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+
+  .project-thumbnail {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    margin-right: 1.5rem;
+    object-fit: cover;
+  }
+
+  .project-info {
+    flex-grow: 1;
+
+    .project-name {
+      font-weight: 700 !important;
+      font-size: 1.1rem !important;
+    }
+
+    .group-count {
+      color: #9a9b7f;
+      font-size: 0.9rem !important;
+    }
+  }
+
+  .arrow-icon {
+    color: #384a3c;
+  }
+}
+
+// === Bouton "Voir plus" ===
+.see-more-button {
+  display: block;
+  width: fit-content;
+  margin: 1.5rem auto 0;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+// === Adaptation pour les écrans mobiles ===
+@media (max-width: 768px) {
+  .dashboard-container {
+    max-width: 100%;
+  }
+}
